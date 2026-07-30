@@ -1354,6 +1354,43 @@ function syncMeta() {
 
 /* ---------- save / load / delete (localStorage) ---------- */
 
+// break a record down into flat, analytics-friendly numbers + a
+// readable service list, so the Google Sheet has real columns to
+// pivot on (not just the raw json blob)
+function quoteAnalytics(record) {
+  const lines = [];
+  let subtotal = 0;
+  (record.services || []).forEach((s) => {
+    const name = (CATALOGUE[s.key] && CATALOGUE[s.key].label) || s.head || s.key;
+    const amount = s.amt || 0;
+    subtotal += amount;
+    lines.push({ name, amount });
+  });
+  (record.customItems || []).forEach((it) => {
+    const amount = it.amt || 0;
+    subtotal += amount;
+    lines.push({ name: it.desc || "Custom item", amount });
+  });
+  const discountRate = record.discountRate || 0;
+  const taxRate = record.taxRate || 0;
+  const discountAmt = subtotal * (discountRate / 100);
+  const professionalFee = subtotal - discountAmt; // excl. GST
+  const taxAmt = professionalFee * (taxRate / 100);
+  const grandTotal = professionalFee + taxAmt;
+  return {
+    services: lines,
+    serviceCount: lines.length,
+    servicesText: lines.map((l) => `${l.name} (₹${fmt0(l.amount)})`).join("; "),
+    subtotal,
+    discountRate,
+    discountAmt,
+    professionalFee,
+    taxRate,
+    taxAmt,
+    grandTotal,
+  };
+}
+
 async function saveQuotation() {
   const { services, customItems } = readItems();
   const record = {
@@ -1384,6 +1421,7 @@ async function saveQuotation() {
     removedDocs: [...removedDocs],
     savedAt: new Date().toISOString(),
   };
+  record.analytics = quoteAnalytics(record);
   try {
     const saved = await Store.save(record);
     // adopt the definitive (server-issued) number

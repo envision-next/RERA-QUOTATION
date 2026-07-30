@@ -16,6 +16,19 @@
 var SHEET_NAME  = "Quotations";
 var COUNTER_KEY = "quoteCounter";
 
+// Column order written to the sheet (analytics-friendly). The full
+// quotation JSON stays in the last column for completeness.
+var HEADER = [
+  "quoteNo", "savedAt", "date", "validTill", "status",
+  "customer", "phone", "email", "address",
+  "project", "reraNumber",
+  "services", "serviceCount",
+  "subtotal", "discountRate", "discountAmt",
+  "gstRate", "gstAmt", "grandTotal",
+  "notes", "json"
+];
+var JSON_COL = HEADER.length - 1; // 0-based index of the json column
+
 /* ---------- HTTP entry points ---------- */
 
 function doGet(e) {
@@ -43,16 +56,47 @@ function sheet() {
   var sh = ss.getSheetByName(SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(SHEET_NAME);
-    sh.appendRow(["quoteNo", "savedAt", "customer", "status", "date", "total", "json"]);
+    sh.appendRow(HEADER);
+    sh.setFrozenRows(1);
   }
   return sh;
+}
+
+// Flatten a saved record into a sheet row matching HEADER.
+function buildRow(record) {
+  var a = record.analytics || {};
+  var c = record.customer || {};
+  var p = record.project || {};
+  return [
+    record.quoteNo,
+    record.savedAt,
+    record.date || "",
+    record.validTill || "",
+    record.status || "",
+    c.name || "",
+    c.phone || "",
+    c.email || "",
+    c.address || "",
+    p.name || "",
+    p.rera || "",
+    a.servicesText || "",
+    a.serviceCount || 0,
+    a.subtotal || 0,
+    a.discountRate || 0,
+    a.discountAmt || 0,
+    a.taxRate || 0,
+    a.taxAmt || 0,
+    a.grandTotal || 0,
+    record.notes || "",
+    JSON.stringify(record)
+  ];
 }
 
 function listAll() {
   var rows = sheet().getDataRange().getValues();
   var out = [];
   for (var i = 1; i < rows.length; i++) {
-    var j = rows[i][6];
+    var j = rows[i][JSON_COL];
     if (j) { try { out.push(JSON.parse(j)); } catch (err) {} }
   }
   return out;
@@ -111,17 +155,7 @@ function saveRecord(record) {
     }
     record.savedAt = new Date().toISOString();
 
-    var total = sum(record.services) + sum(record.customItems);
-    var values = [
-      record.quoteNo,
-      record.savedAt,
-      (record.customer && record.customer.name) || "",
-      record.status || "",
-      record.date || "",
-      total,
-      JSON.stringify(record),
-    ];
-
+    var values = buildRow(record);
     if (rowIndex === -1) sh.appendRow(values);
     else sh.getRange(rowIndex, 1, 1, values.length).setValues([values]);
 
@@ -146,11 +180,28 @@ function deleteRecord(quoteNo) {
   }
 }
 
+/* ---------- one-time reset (run manually from the editor) ----------
+   Select "resetAll" in the toolbar function dropdown and click Run.
+   Wipes all saved rows and restarts numbering, so the next save is
+   QT0001. Does NOT touch anything served over the web. ----------- */
+function resetAll() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(SHEET_NAME);
+    if (sh) ss.deleteSheet(sh);          // drop old data + any old schema
+    sh = ss.insertSheet(SHEET_NAME);     // recreate with the new HEADER
+    sh.appendRow(HEADER);
+    sh.setFrozenRows(1);
+    PropertiesService.getScriptProperties().deleteProperty(COUNTER_KEY);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 /* ---------- tiny utils ---------- */
 
-function sum(items) {
-  return (items || []).reduce(function (s, it) { return s + (it.amt || 0); }, 0);
-}
 function pad(n) {
   var s = String(n);
   while (s.length < 4) s = "0" + s;
