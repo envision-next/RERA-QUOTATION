@@ -1,0 +1,13 @@
+# OS / editor cruft
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# Local notes / logs
+*.log
+
+# Internal CRM architecture notes — not part of this app, keep private
+quotations_internal_crm.md

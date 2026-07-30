@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RERA Easy Quotation</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ===== Welcome splash (branded intro animation) ===== -->
+  <div id="welcomeSplash" title="Click to enter">
+    <div class="ws-inner">
+      <div class="ws-kicker">Welcome to</div>
+      <div class="ws-title">RERA Easy</div>
+      <div class="ws-sub">Quotation Builder</div>
+      <div class="ws-bar"><span></span></div>
+    </div>
+  </div>
+  <script>(function(){var s=document.getElementById('welcomeSplash');if(!s)return;var done=false;
+    var kill=function(){if(done)return;done=true;s.style.opacity='0';s.style.visibility='hidden';setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},600);};
+    s.addEventListener('click',kill);setTimeout(kill,2900);})();</script>
+
+  <!-- ===== Top App Bar ===== -->
+  <header class="appbar">
+    <div class="appbar-left">
+      <div class="brand-mark">RE</div>
+      <div>
+        <h1 class="app-title">Quotation Builder</h1>
+        <span class="app-subtitle">MahaRERA Compliance &amp; Advisory</span>
+      </div>
+    </div>
+    <div class="appbar-actions">
+      <button class="btn btn-ghost" id="btnNew" title="Start a new quotation">✚ New</button>
+      <button class="btn btn-ghost" id="btnSave" title="Save this quotation locally">💾 Save</button>
+      <button class="btn btn-ghost" id="btnHistory" title="View saved quotations">🗂 Saved</button>
+      <span class="divider-v"></span>
+      <button class="btn btn-outline" id="btnLock" title="Lock / unlock editing on the preview">🔓 Unlocked</button>
+      <button class="btn btn-outline" id="btnEdits" title="Edit default fees, charges &amp; terms">✎ Edits</button>
+      <button class="btn btn-primary" id="btnPdf" title="Export as PDF">⬇ Export PDF</button>
+      <button class="btn btn-outline" id="btnWord" title="Export as Word document">⬇ Word</button>
+      <button class="btn btn-outline" id="btnPrint" title="Print">🖨 Print</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+
+    <!-- ===== Left Panel : Quick Controls ===== -->
+    <aside class="side-panel">
+
+      <!-- Client details: live-synced to the proposal letter & callout -->
+      <section class="panel-card">
+        <h3 class="panel-title">Client Details</h3>
+        <label class="field">
+          <span class="field-label">Promoter / Company Name</span>
+          <input type="text" id="custName" placeholder="e.g. Shree Builders Pvt. Ltd." />
+        </label>
+        <label class="field">
+          <span class="field-label">Address</span>
+          <input type="text" id="custAddress" placeholder="Office / registered address" />
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span class="field-label">Phone</span>
+            <input type="text" id="custPhone" placeholder="+91 ..." />
+          </label>
+          <label class="field">
+            <span class="field-label">Email</span>
+            <input type="email" id="custEmail" placeholder="name@company.com" />
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span class="field-label">Project Name</span>
+            <input type="text" id="projName" placeholder="e.g. Green Meadows Phase 2" />
+          </label>
+          <label class="field">
+            <span class="field-label">RERA Registration No.</span>
+            <input type="text" id="reraNo" placeholder="e.g. P51700012345" />
+          </label>
+        </div>
+      </section>
+
+      <!-- Service picker: selected services become Annexure A cards
+           and drive the Documents Required annexure -->
+      <section class="panel-card panel-highlight">
+        <h3 class="panel-title">Services</h3>
+        <div id="svcPicker"><!-- groups & rows rendered by app.js --></div>
+
+        <div class="calc-preview">
+          <div><span>Services Selected</span><strong id="svcCount">0</strong></div>
+          <div><span>Professional Fee</span><strong id="pSubtotal">₹ 0</strong></div>
+          <div><span>GST <span id="gstPct">(18%)</span></span><strong id="pGst">₹ 0.00</strong></div>
+          <div class="calc-total"><span>Total (incl. GST)</span><strong id="pTotal">₹ 0.00</strong></div>
+        </div>
+      </section>
+
+      <section class="panel-card">
+        <h3 class="panel-title">Quotation Settings</h3>
+        <div class="field-row">
+          <label class="field">
+            <span class="field-label">Quotation No.</span>
+            <input type="text" id="quoteNo" value="QT0001" />
+          </label>
+          <label class="field">
+            <span class="field-label">Status</span>
+            <select id="quoteStatus">
+              <option value="draft" selected>Draft</option>
+              <option value="sent">Sent</option>
+              <option value="accepted">Accepted</option>
+              <option value="expired">Expired</option>
+            </select>
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span class="field-label">Date</span>
+            <input type="date" id="quoteDate" />
+          </label>
+          <label class="field">
+            <span class="field-label">Valid Till</span>
+            <input type="date" id="validTill" />
+          </label>
+        </div>
+      </section>
+
+      <!-- Edits: opened from the ✎ Edits button in the top bar -->
+      <section class="panel-card edits-card" id="editsCard" hidden>
+        <div class="edits-title-row">
+          <h3 class="panel-title edits-title">✎ Edits</h3>
+          <button class="btn btn-ghost" id="btnCloseEdits" title="Close">✕</button>
+        </div>
+        <div class="edits-body" id="editsBody">
+
+          <h4 class="sub-title">Default Service Fees <small>(prefill when a service is selected)</small></h4>
+          <table class="rates-grid rates-grid-onb">
+            <thead>
+              <tr><th>Service</th><th>Fee (₹)</th></tr>
+            </thead>
+            <tbody id="svcAmtBody"><!-- one row per service, rendered by app.js --></tbody>
+          </table>
+          <p class="rates-hint">Fees save on this computer. Amounts remain editable per quotation, on the sheet or in the Services panel.</p>
+
+          <h4 class="sub-title">Charges &amp; Rules</h4>
+          <label class="field">
+            <span class="field-label">GST (%)</span>
+            <input type="number" id="taxRate" value="18" min="0" step="0.01" />
+          </label>
+          <label class="field">
+            <span class="field-label">Discount (%)</span>
+            <input type="number" id="discountRate" value="0" min="0" step="0.01" />
+          </label>
+          <div class="rules-note">
+            <strong>Smart rules</strong> (auto-applied):
+            <ul id="rulesList">
+              <li>Selecting a service adds its Annexure A card — with its scope items — instantly.</li>
+              <li>The proposal title, kicker &amp; callout follow the selected services and client details.</li>
+              <li>Annexure B (documents) is auto-built from the selected services, de-duplicated.</li>
+              <li>The Professional Fee is exclusive of GST; the GST-inclusive total shows in this panel.</li>
+            </ul>
+          </div>
+
+          <h4 class="sub-title">Notes &amp; Terms</h4>
+          <label class="field">
+            <span class="field-label">Notes to Client</span>
+            <textarea id="notes" rows="3" placeholder="Optional note printed after the terms…"></textarea>
+          </label>
+          <label class="field">
+            <span class="field-label">Terms &amp; Conditions (one per line)</span>
+            <textarea id="terms" rows="8"></textarea>
+          </label>
+
+        </div>
+      </section>
+    </aside>
+
+    <!-- ===== Center : The Proposal Sheet (A4-style, print-ready) ===== -->
+    <main class="sheet-area">
+      <div id="pagesContainer">
+
+      <!-- fixed cover page (Company Profile page 1) -->
+      <div class="sheet fixed-page"><img src="assets/cover-1.png" alt="RERA Easy cover" /></div>
+
+      <div class="sheet proposal" id="quotationSheet">
+
+        <!-- brand top bar -->
+        <div class="prop-topbar">
+          <img src="reraeasy-logo.png" alt="RERA Easy" class="logo-img" />
+        </div>
+
+        <!-- kicker + big title + meta -->
+        <div class="prop-kicker head-hidden"><span id="propKicker"></span><i class="kicker-line"></i></div>
+        <div class="prop-titlerow">
+          <h1 class="prop-title" id="propTitle" contenteditable="true" spellcheck="false"></h1>
+          <div class="prop-meta">
+            <p><span>Date</span> <b id="metaDate">—</b></p>
+            <p><span>Prepared for</span> <b id="metaFor">Promoter Name</b></p>
+            <p><span>Quotation No.</span> <b id="metaNo">QT0001</b></p>
+            <p><span>Valid till</span> <b id="metaValid">—</b></p>
+          </div>
+        </div>
+
+        <!-- proposal letter -->
+        <div class="prop-letter">
+          <p contenteditable="true" spellcheck="false">Sir,</p>
+          <p contenteditable="true" spellcheck="false">We are pleased to present our proposal for your requirement for RERA Consultation for your Real Estate project.</p>
+          <p contenteditable="true" spellcheck="false">We are a team of Chartered Accountants, Engineers &amp; Advocates, and during the last seven years, we have worked with more than 2300 Real Estate Developers across Maharashtra. As one of the leading RERA Consultants in Mumbai, RERA Easy has been at the forefront in RERA consulting for individuals and large corporations.</p>
+        </div>
+
+        <!-- gold callout -->
+        <div class="prop-callout">
+          As per our discussion, you have opted for RERA Consultation Services for <b id="coServices">the selected services</b> for your project “<b id="coProject">Project Name</b>” bearing Project Registration Number “<b id="coRera">Registration Number</b>”, being developed by “<b id="coPromoter">Promoter Name</b>”.
+        </div>
+
+        <p class="prop-refer">Please refer to <b>Annexure A</b> for the services &amp; charges, and <b>Annexure B</b> for the list of documents required.</p>
+
+        <!-- index of the quotations in this document (2+ offerings) -->
+        <div class="index-block empty" id="indexBlock">
+          <div class="prop-annex-head"><i></i><span>Quotations in this Document</span></div>
+          <table class="index-table" id="indexTable"><!-- rendered by app.js --></table>
+          <p class="index-note">*18% GST applicable on the above mentioned charges. Prices do not include Government Fees.</p>
+        </div>
+
+        <!-- Annexure A : service cards (heading repeats per offering when several are selected) -->
+        <div class="prop-annex-head" id="annexAHead"><i></i><span>Annexure A · Scope of Work</span></div>
+        <div id="svcCards"><!-- cards injected by app.js --></div>
+        <button class="btn btn-add no-print" id="btnAddRow">＋ Add Custom Item</button>
+
+        <!-- Professional Fee -->
+        <div class="fee-box">
+          <div class="fee-left">
+            <div class="fee-label">Professional Fee</div>
+            <div class="fee-note">Exclusive of <span id="feeGstPct">18</span>% GST and applicable Government Fees<span id="feeDiscNote"></span></div>
+            <div class="fee-words" id="amountWords">—</div>
+          </div>
+          <div class="fee-amount" id="tFee">₹0/-</div>
+        </div>
+
+        <!-- Annexure B : documents required -->
+        <div class="docs-block" id="docsBlock">
+          <div class="prop-annex-head"><i></i><span>Annexure B · Documents Required</span></div>
+          <ul class="docs-list" id="docsList"><!-- rendered by app.js --></ul>
+          <div class="doc-add no-print">
+            <input type="text" id="docAddInput" placeholder="Add a document requirement…" />
+            <button class="btn btn-add" id="btnAddDoc">＋ Add</button>
+          </div>
+        </div>
+
+        <!-- Terms & Conditions -->
+        <div class="prop-annex-head"><i></i><span>Terms &amp; Conditions</span></div>
+        <ol class="terms-list" id="termsList"><!-- rendered by app.js --></ol>
+
+        <!-- Exclusions: same theme as the terms, fed by the selected services -->
+        <div class="excl-block empty" id="exclBlock">
+          <div class="prop-annex-head"><i></i><span>Exclusions</span></div>
+          <ol class="terms-list" id="exclList"><!-- rendered by app.js --></ol>
+        </div>
+        <p class="prop-notes" id="sheetNotes"></p>
+
+        <!-- sign-off -->
+        <div class="prop-signoff">
+          <div class="signoff-left">
+            <p>Thanks &amp; regards,</p>
+            <div class="signoff-name" contenteditable="true" spellcheck="false">RERA Easy</div>
+          </div>
+          <div class="signoff-right" contenteditable="true" spellcheck="false">
+            <b>Have questions?</b><br />+91 76780 81406 / 73048 38163<br />info@reraeasy.com
+          </div>
+        </div>
+
+        <!-- footer strip -->
+        <div class="prop-footer">
+          <img src="reraeasy-logo.png" alt="RERA Easy" class="logo-img logo-sm" />
+          <p contenteditable="true" spellcheck="false">+91 76780 81406 · 73048 38163 · info@reraeasy.com<br />Unit 1302/1303/1304, 13th Floor, Plutonium Business Park, C Zone, Plot 7 &amp; 7A, Thane-Belapur Rd, MIDC, Turbhe, Navi Mumbai 400703</p>
+        </div>
+
+      </div>
+
+      <!-- fixed trailing pages (Our Clients + Contact Us) -->
+      <div class="sheet fixed-page tail"><img src="assets/client-1.jpg" loading="lazy" alt="Our Clients" /></div>
+      <div class="sheet fixed-page tail"><img src="assets/client-2.jpg" loading="lazy" alt="Our Clients" /></div>
+      <div class="sheet fixed-page tail"><img src="assets/client-3.jpg" loading="lazy" alt="Our Clients" /></div>
+      <div class="sheet fixed-page tail"><img src="assets/client-4.jpg" loading="lazy" alt="Our Clients" /></div>
+      <div class="sheet fixed-page tail"><img src="assets/client-5.jpg" loading="lazy" alt="Our Clients" /></div>
+      <div class="sheet fixed-page tail"><img src="assets/client-6.jpg" loading="lazy" alt="Our Clients" /></div>
+      <div class="sheet fixed-page tail"><img src="assets/client-7.jpg" loading="lazy" alt="Contact Us" /></div>
+
+      </div><!-- /pagesContainer -->
+    </main>
+  </div>
+
+  <!-- ===== Saved Quotations Drawer (hidden by default) ===== -->
+  <div class="drawer-overlay" id="drawerOverlay" hidden>
+    <aside class="drawer">
+      <div class="drawer-head">
+        <h3>Saved Quotations</h3>
+        <button class="btn btn-ghost" id="btnCloseDrawer">✕</button>
+      </div>
+      <ul class="saved-list" id="savedList">
+        <li class="saved-empty">No saved quotations yet.</li>
+      </ul>
+    </aside>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
