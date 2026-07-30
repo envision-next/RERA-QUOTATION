@@ -225,6 +225,8 @@ body::after {
 .row-del .ico,
 .doc-del .ico,
 .saved-del .ico { width: 15px; height: 15px; }
+input[readonly] { opacity: .72; cursor: default; }
+
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(1px) scale(.98); }
 
