@@ -55,7 +55,6 @@ const ICON_CHECK = SVG + '<polyline points="20 6 9 17 4 12"/></svg>';
 const ICON_ALERT = SVG + '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 const ICON_LOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const ICON_UNLOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
-const ICON_SWAP = SVG + '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
 
 const Store = {
   remote() {
@@ -431,6 +430,7 @@ const CATALOGUE = {
     sections: [
       {
         title: "Consultation & Advisory Services",
+        hidePrice: true,
         price: 75000,
         items: [...PKG_ADVISORY_6, "Implementation of Consents from Allottees"],
       },
@@ -450,6 +450,7 @@ const CATALOGUE = {
     sections: [
       {
         title: "Consultation & Advisory Services",
+        hidePrice: true,
         price: 120000,
         items: [
           ...PKG_ADVISORY_6,
@@ -475,6 +476,7 @@ const CATALOGUE = {
     sections: [
       {
         title: "Consultation & Advisory Services",
+        hidePrice: true,
         price: 125000,
         items: [
           ...PKG_ADVISORY_6,
@@ -500,6 +502,7 @@ const CATALOGUE = {
     sections: [
       {
         title: "Consultation & Advisory Services",
+        hidePrice: true,
         price: 125000,
         items: [
           ...PKG_ADVISORY_6,
@@ -952,7 +955,7 @@ function addSectionCards(key, secs) {
     const priced = saved ? saved.amt != null : sec.price != null;
     const amount = saved ? saved.amt || 0 : sec.price || 0;
     const sub = saved ? saved.sub : sec.items.join("\n");
-    prev = addSectionCard(key, i, sec.title, priced, amount, sub, prev);
+    prev = addSectionCard(key, i, sec.title, priced, amount, sub, sec.hidePrice, prev);
   });
 }
 
@@ -978,7 +981,12 @@ function rebuildExclusions() {
 
 // pill markup for a section: a price input, or the outline
 // "Included in our scope" tag
-function sectionPillHtml(priced, amount) {
+function sectionPillHtml(priced, amount, hidePrice) {
+  // priced but hidden: show the "Included in our scope" tag while the
+  // amount rides along in a hidden field so it still feeds the fee
+  if (priced && hidePrice) {
+    return `<div class="card-pill card-pill-outline">Included in our scope</div><input type="hidden" class="i-amt" value="${amount || 0}">`;
+  }
   return priced
     ? `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount || 0)}"><span>/-</span></div>`
     : `<div class="card-pill card-pill-outline">Included in our scope</div>`;
@@ -987,7 +995,7 @@ function sectionPillHtml(priced, amount) {
 // (re)attach the amount-input listeners for a section card
 function bindSectionAmt(card, key) {
   const amt = card.querySelector(".i-amt");
-  if (!amt) return;
+  if (!amt || amt.type === "hidden") return;
   amt.addEventListener("input", () => {
     const panelAmt = panelAmtInput(key);
     if (panelAmt) panelAmt.value = fmt0(serviceTotal(key));
@@ -997,25 +1005,7 @@ function bindSectionAmt(card, key) {
   amt.addEventListener("blur", () => (amt.value = fmt0(parseAmt(amt.value))));
 }
 
-// flip a section between a price and "Included in our scope"
-function toggleSectionPill(card, key) {
-  const pill = card.querySelector(".card-pill");
-  const wasIncluded = pill.classList.contains("card-pill-outline");
-  if (!wasIncluded) {
-    // remember the price so switching back restores it
-    const inp = card.querySelector(".i-amt");
-    if (inp) card.dataset.lastAmt = String(parseAmt(inp.value) || 0);
-  }
-  const priced = wasIncluded;
-  const amount = wasIncluded ? parseAmt(card.dataset.lastAmt || "0") : 0;
-  pill.outerHTML = sectionPillHtml(priced, amount);
-  bindSectionAmt(card, key);
-  const panelAmt = panelAmtInput(key);
-  if (panelAmt) panelAmt.value = fmt0(serviceTotal(key));
-  recalc();
-}
-
-function addSectionCard(key, secIdx, title, priced, amount, sub, afterEl) {
+function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afterEl) {
   const card = document.createElement("div");
   card.className = "svc-card";
   card.dataset.key = key;
@@ -1024,14 +1014,12 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, afterEl) {
   card.innerHTML = `
     <div class="card-head">
       <div class="card-title" contenteditable="true" spellcheck="false">${escapeHtml(title)}</div>
-      ${sectionPillHtml(priced, amount)}
-      <button class="pill-toggle no-print" title="Switch between a price and &quot;Included in our scope&quot;">${ICON_SWAP}</button>
+      ${sectionPillHtml(priced, amount, hidePrice)}
       <button class="row-del no-print" title="Remove this section">${ICON_X}</button>
     </div>
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(sub)}</ol>
   `;
   card.querySelector(".row-del").addEventListener("click", () => removeSectionCard(card, key));
-  card.querySelector(".pill-toggle").addEventListener("click", () => toggleSectionPill(card, key));
   bindSectionAmt(card, key);
 
   if (afterEl) afterEl.after(card);

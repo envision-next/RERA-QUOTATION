@@ -228,22 +228,6 @@ body::after {
 .row-del .ico,
 .doc-del .ico,
 .saved-del .ico { width: 15px; height: 15px; }
-
-/* section pill toggle: price <-> "Included in our scope" */
-.pill-toggle {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--gold-deep, #a16207);
-  padding: 3px;
-  border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  opacity: .6;
-  transition: opacity .15s, background .15s;
-}
-.pill-toggle:hover { opacity: 1; background: rgba(0, 0, 0, .06); }
-.pill-toggle .ico { width: 15px; height: 15px; }
 input[readonly] { opacity: .72; cursor: default; }
 
 .btn:hover { transform: translateY(-1px); }
