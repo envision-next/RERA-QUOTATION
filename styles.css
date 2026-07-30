@@ -207,8 +207,24 @@ body::after {
   border-radius: 12px;
   border: 1px solid transparent;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   transition: background .2s, border-color .2s, transform .15s, box-shadow .25s;
 }
+
+/* inline SVG icons — inherit the button's text colour and scale with it */
+.ico {
+  width: 1.05em;
+  height: 1.05em;
+  flex: 0 0 auto;
+  vertical-align: -0.15em;
+  pointer-events: none;
+}
+.row-del .ico,
+.doc-del .ico,
+.saved-del .ico { width: 15px; height: 15px; }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(1px) scale(.98); }
 

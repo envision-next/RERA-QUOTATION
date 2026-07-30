@@ -44,8 +44,17 @@ const RATES_KEY = "enq.rates.v1";
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz153uFaiXhZNLMJTpUYYfF6Xf09Fbk6za6yoaJBBeJj_Rki5OHdGHslTQ1Vy2lZw0Wag/exec"; // Apps Script Web App
 
 // tracks the server-assigned number of the quotation currently
-// on screen — null means "new, not saved yet"
+// on screen; null means "new, not saved yet"
 let loadedQuoteNo = null;
+
+/* inline SVG icons (Lucide-style) reused by generated markup */
+const SVG = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+const ICON_X = SVG + '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+const ICON_TRASH = SVG + '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+const ICON_CHECK = SVG + '<polyline points="20 6 9 17 4 12"/></svg>';
+const ICON_ALERT = SVG + '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+const ICON_LOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+const ICON_UNLOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
 
 const Store = {
   remote() {
@@ -879,9 +888,9 @@ function addServiceCard(key, amount, subText, customAmt) {
     <div class="card-head">
       <div class="card-title">${escapeHtml(CATALOGUE[key].label)}</div>
       <div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount)}"><span>/-</span></div>
-      <button class="row-del no-print" title="Remove service">✕</button>
+      <button class="row-del no-print" title="Remove service">${ICON_X}</button>
     </div>
-    <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items — click to edit">${scopeListHtml(subText)}</ol>
+    <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(subText)}</ol>
   `;
   card.querySelector(".row-del").addEventListener("click", () => deselectService(key));
 
@@ -961,9 +970,9 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, afterEl) {
     <div class="card-head">
       <div class="card-title">${escapeHtml(title)}</div>
       ${pill}
-      <button class="row-del no-print" title="Remove service">✕</button>
+      <button class="row-del no-print" title="Remove service">${ICON_X}</button>
     </div>
-    <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items — click to edit">${scopeListHtml(sub)}</ol>
+    <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(sub)}</ol>
   `;
   card.querySelector(".row-del").addEventListener("click", () => deselectService(key));
 
@@ -1095,9 +1104,9 @@ function refreshOtherServices() {
       <div class="card-head">
         <div class="card-title">Other Services</div>
         <div class="card-pill card-pill-outline">Included in our scope</div>
-        <button class="row-del no-print" title="Remove Other Services">✕</button>
+        <button class="row-del no-print" title="Remove Other Services">${ICON_X}</button>
       </div>
-      <ol class="card-list" contenteditable="true" spellcheck="false" title="Other services — click to edit">${html}</ol>
+      <ol class="card-list" contenteditable="true" spellcheck="false" title="Other services (click to edit)">${html}</ol>
     `;
     card.querySelector(".row-del").addEventListener("click", () => {
       setOtherState("extension", false);
@@ -1131,9 +1140,9 @@ function addCustomCard(item = {}) {
     <div class="card-head">
       <input type="text" class="i-desc" placeholder="ITEM / SERVICE NAME" value="${escapeAttr(it.desc)}">
       <div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(it.amt)}"><span>/-</span></div>
-      <button class="row-del no-print" title="Remove item">✕</button>
+      <button class="row-del no-print" title="Remove item">${ICON_X}</button>
     </div>
-    <ol class="card-list" contenteditable="true" spellcheck="false" title="Details — click to edit">${scopeListHtml(it.sub) || "<li><br></li>"}</ol>
+    <ol class="card-list" contenteditable="true" spellcheck="false" title="Details (click to edit)">${scopeListHtml(it.sub) || "<li><br></li>"}</ol>
   `;
   card.querySelector(".row-del").addEventListener("click", () => {
     document
@@ -1218,7 +1227,7 @@ function recalc() {
   $("feeGstPct").textContent = taxRate;
   $("feeDiscNote").textContent = discountRate > 0 ? ` · Includes ${discountRate}% discount` : "";
   $("amountWords").textContent =
-    fee > 0 ? "Rupees " + numberToWords(Math.round(fee)) + " Only" : "—";
+    fee > 0 ? "Rupees " + numberToWords(Math.round(fee)) + " Only" : "-";
 
   // panel preview (working numbers incl. GST)
   $("svcCount").textContent = svcCount;
@@ -1281,7 +1290,7 @@ function rebuildDocs() {
   list.innerHTML = "";
   visible.forEach((d) => {
     const li = document.createElement("li");
-    li.innerHTML = `${escapeHtml(d)} <button class="doc-del no-print" title="Remove">✕</button>`;
+    li.innerHTML = `${escapeHtml(d)} <button class="doc-del no-print" title="Remove">${ICON_X}</button>`;
     li.querySelector(".doc-del").addEventListener("click", () => {
       const i = extraDocs.indexOf(d);
       if (i >= 0) extraDocs.splice(i, 1);
@@ -1322,7 +1331,7 @@ function syncCustomer() {
 /* ---------- settings -> sheet sync ---------- */
 
 function syncMeta() {
-  $("metaNo").textContent = $("quoteNo").value.trim() || "—";
+  $("metaNo").textContent = $("quoteNo").value.trim() || "-";
   $("metaDate").textContent = prettyDate($("quoteDate").value);
   $("metaValid").textContent = prettyDate($("validTill").value);
 
@@ -1382,10 +1391,10 @@ async function saveQuotation() {
     $("quoteNo").value = saved.quoteNo;
     syncMeta();
     await renderSavedList();
-    flash($("btnSave"), "✓ Saved");
+    flash($("btnSave"), ICON_CHECK + "Saved");
   } catch (e) {
     console.error("Save failed:", e);
-    flash($("btnSave"), "⚠ Save failed");
+    flash($("btnSave"), ICON_ALERT + "Save failed");
     window.alert("Could not save the quotation.\n\n" + e.message);
   }
 }
@@ -1469,7 +1478,7 @@ async function renderSavedList() {
       const status = q.status || "draft";
       li.innerHTML = `<strong>${escapeHtml(title)}</strong><span class="status-badge status-${status}">${status}</span> · ${prettyDate(q.date)}<br>
         <small>${escapeHtml(q.quoteNo || "")} · ${(q.services || []).length} service(s) · ₹ ${fmt0(total)}</small>
-        <button class="saved-del" title="Delete this quotation">🗑</button>`;
+        <button class="saved-del" title="Delete this quotation">${ICON_TRASH}</button>`;
       li.addEventListener("click", () => loadQuotation(q));
       li.querySelector(".saved-del").addEventListener("click", (e) => {
         e.stopPropagation();
@@ -1487,7 +1496,7 @@ async function nextQuoteNo() {
     return await Store.nextNo();
   } catch (e) {
     console.error("Could not fetch next number:", e);
-    return "QT—";
+    return "QT-";
   }
 }
 
@@ -1542,7 +1551,7 @@ function closeDrawer() {
 /* ---------- helpers ---------- */
 
 function prettyDate(iso) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
@@ -1567,10 +1576,10 @@ function escapeAttr(s = "") {
   return escapeHtml(s);
 }
 
-function flash(btn, text) {
-  const old = btn.textContent;
-  btn.textContent = text;
-  setTimeout(() => (btn.textContent = old), 1200);
+function flash(btn, html) {
+  const old = btn.innerHTML;
+  btn.innerHTML = html;
+  setTimeout(() => (btn.innerHTML = old), 1200);
 }
 
 /* Indian-system number to words */
@@ -1895,7 +1904,7 @@ function exportWord() {
   a.download = ($("quoteNo").value.trim() || "quotation") + ".doc";
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  flash($("btnWord"), "✓ Exported");
+  flash($("btnWord"), ICON_CHECK + "Exported");
 }
 
 /* ---------- wire up ---------- */
@@ -1941,13 +1950,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("propTitle").dataset.custom = "1";
   });
 
-  // 🔒 Lock: view-only preview; 🔓 unlock: editable preview.
-  // The preview starts locked — unlock to fine-tune on the sheet.
+  // Lock: view-only preview; unlock: editable preview.
+  // The preview starts locked, unlock to fine-tune on the sheet.
   document.body.classList.add("locked");
-  $("btnLock").textContent = "🔒 Locked";
+  $("btnLock").innerHTML = ICON_LOCK + "Locked";
   $("btnLock").addEventListener("click", () => {
     const locked = document.body.classList.toggle("locked");
-    $("btnLock").textContent = locked ? "🔒 Locked" : "🔓 Unlocked";
+    $("btnLock").innerHTML = locked ? ICON_LOCK + "Locked" : ICON_UNLOCK + "Unlocked";
   });
 
   // ✎ Edits (top bar) toggles the floating fixed panel
