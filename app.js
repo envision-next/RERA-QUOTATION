@@ -1054,19 +1054,32 @@ function rebuildIndex() {
   const keys = selectedKeys();
   const tbl = $("indexTable");
   if (!tbl) return;
-  tbl.innerHTML = keys
-    .map((k, i) => {
-      const name =
-        (offeringHead(k) && offeringHead(k).querySelector(".offering-title")?.innerText.trim()) ||
-        SHORT_TITLES[k] || CATALOGUE[k].label;
-      return `<tr><td class="ix-no">${String(i + 1).padStart(2, "0")}</td><td>${escapeHtml(name)}</td><td class="ix-amt">₹ ${fmt0(offeringAmount(k))}*</td></tr>`;
-    })
+
+  // one line per billed item: offerings first, then custom items
+  const lines = keys.map((k) => ({
+    name:
+      (offeringHead(k) && offeringHead(k).querySelector(".offering-title")?.innerText.trim()) ||
+      SHORT_TITLES[k] || CATALOGUE[k].label,
+    amt: offeringAmount(k),
+    yearly: isYearly(k),
+  }));
+  document.querySelectorAll(".svc-card.custom-card").forEach((c) => {
+    const desc = c.querySelector(".i-desc")?.value.trim();
+    const amt = parseAmt(c.querySelector(".i-amt")?.value);
+    if (desc || amt) lines.push({ name: desc || "Custom item", amt, yearly: false });
+  });
+
+  tbl.innerHTML = lines
+    .map(
+      (l, i) =>
+        `<tr><td class="ix-no">${String(i + 1).padStart(2, "0")}</td><td>${escapeHtml(l.name)}</td><td class="ix-amt">₹ ${fmt0(l.amt)}*</td></tr>`
+    )
     .join("");
 
   // grand total (one-time services) + yearly payable (packages), shown
   // separately so the client sees each service charge and the totals
-  const oneTimeSum = keys.filter((k) => !isYearly(k)).reduce((s, k) => s + offeringAmount(k), 0);
-  const yearlySum = keys.filter((k) => isYearly(k)).reduce((s, k) => s + offeringAmount(k), 0);
+  const oneTimeSum = lines.filter((l) => !l.yearly).reduce((s, l) => s + l.amt, 0);
+  const yearlySum = lines.filter((l) => l.yearly).reduce((s, l) => s + l.amt, 0);
   let totals = "";
   if (oneTimeSum > 0)
     totals += `<tr class="ix-total"><td></td><td>Grand Total (one-time)</td><td class="ix-amt">₹ ${fmt0(oneTimeSum)}*</td></tr>`;
@@ -1074,7 +1087,7 @@ function rebuildIndex() {
     totals += `<tr class="ix-total ix-yearly"><td></td><td>Yearly Payable (Packages)</td><td class="ix-amt">₹ ${fmt0(yearlySum)}*</td></tr>`;
   tbl.innerHTML += totals;
 
-  $("indexBlock").classList.toggle("empty", keys.length < 2);
+  $("indexBlock").classList.toggle("empty", lines.length < 2);
 }
 
 /* total of a sectioned offering = sum of its priced pills */
@@ -1834,20 +1847,29 @@ function repaginate() {
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
     const budget = pages.length === 1 ? PAGE_BUDGET : PAGE_BUDGET - LETTERHEAD_ALLOWANCE;
+    // hidden blocks take no space — never let them force a page break
+    if (getComputedStyle(b).display === "none") {
+      pages[pages.length - 1].push(b);
+      continue;
+    }
     const h = outerH(b);
     const cur = pages[pages.length - 1];
-    if (h <= budget - used || !cur.length) {
+    // a block's bottom margin is invisible at the page's bottom edge —
+    // let it (plus a little slack) overflow rather than waste the page
+    const mb = parseFloat(getComputedStyle(b).marginBottom) || 0;
+    if (h - mb <= budget - used + 16 || !cur.length) {
       cur.push(b);
       used += h;
       continue;
     }
-    // an offering's FIRST card never splits — if it can't fit on the
-    // current page, the whole offering starts on a fresh page
+    // an offering's FIRST card prefers not to split — but when a good
+    // chunk of the page is still free, splitting beats a huge gap
     const offeringStart =
       b.classList.contains("svc-card") &&
       b.dataset.key &&
       (b.dataset.sec === undefined || b.dataset.sec === "0");
-    if (b.classList.contains("svc-card") && !offeringStart && !focusCard && budget - used >= 240) {
+    const minRoom = offeringStart ? 350 : 240;
+    if (b.classList.contains("svc-card") && !focusCard && budget - used >= minRoom) {
       const cont = trySplitCard(b, budget - used);
       if (cont) {
         cur.push(b);
