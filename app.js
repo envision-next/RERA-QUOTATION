@@ -844,6 +844,24 @@ function deselectService(key) {
   recalc();
 }
 
+/* remove a SINGLE section of a multi-section offering; only when the
+   last remaining section goes do we deselect the whole offering */
+function removeSectionCard(card, key) {
+  document
+    .querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"]`)
+    .forEach((c) => c.remove());
+  card.remove();
+  const remaining = document.querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"]`);
+  if (!remaining.length) {
+    deselectService(key);
+    return;
+  }
+  const panelAmt = panelAmtInput(key);
+  if (panelAmt) panelAmt.value = fmt0(serviceTotal(key));
+  rebuildDocs();
+  recalc();
+}
+
 /* ---------- Annexure A cards ---------- */
 
 /* cards live wherever pagination put them — always query globally */
@@ -886,7 +904,7 @@ function addServiceCard(key, amount, subText, customAmt) {
   if (customAmt) card.dataset.customAmt = "1";
   card.innerHTML = `
     <div class="card-head">
-      <div class="card-title">${escapeHtml(CATALOGUE[key].label)}</div>
+      <div class="card-title" contenteditable="true" spellcheck="false">${escapeHtml(CATALOGUE[key].label)}</div>
       <div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount)}"><span>/-</span></div>
       <button class="row-del no-print" title="Remove service">${ICON_X}</button>
     </div>
@@ -968,13 +986,13 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, afterEl) {
     : `<div class="card-pill card-pill-outline">Included in our scope</div>`;
   card.innerHTML = `
     <div class="card-head">
-      <div class="card-title">${escapeHtml(title)}</div>
+      <div class="card-title" contenteditable="true" spellcheck="false">${escapeHtml(title)}</div>
       ${pill}
-      <button class="row-del no-print" title="Remove service">${ICON_X}</button>
+      <button class="row-del no-print" title="Remove this section">${ICON_X}</button>
     </div>
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(sub)}</ol>
   `;
-  card.querySelector(".row-del").addEventListener("click", () => deselectService(key));
+  card.querySelector(".row-del").addEventListener("click", () => removeSectionCard(card, key));
 
   const amt = card.querySelector(".i-amt");
   if (amt) {
