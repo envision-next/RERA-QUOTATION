@@ -213,7 +213,7 @@
 
         <!-- gold callout -->
         <div class="prop-callout">
-          As per our discussion, you have opted for RERA Consultation Services for <b id="coServices">the selected services</b> for your project “<b id="coProject">Project Name</b>” bearing Project Registration Number “<b id="coRera">Registration Number</b>”, being developed by “<b id="coPromoter">Promoter Name</b>”.
+          As per our discussion, you have opted for RERA Consultation Services for <b id="coServices">the selected services</b> for your project “<b id="coProject">Project Name</b>”<span id="coReraPhrase"> bearing Project Registration Number “<b id="coRera">Registration Number</b>”</span>, being developed by “<b id="coPromoter">Promoter Name</b>”.
         </div>
 
         <p class="prop-refer">Please refer to <b>Annexure A</b> for the services &amp; charges, and <b>Annexure B</b> for the list of documents required.</p>
@@ -233,9 +233,10 @@
         <!-- Professional Fee -->
         <div class="fee-box">
           <div class="fee-left">
-            <div class="fee-label">Professional Fee</div>
+            <div class="fee-label" id="feeLabel">Professional Fee</div>
             <div class="fee-note">Exclusive of <span id="feeGstPct">18</span>% GST and applicable Government Fees<span id="feeDiscNote"></span></div>
             <div class="fee-words" id="amountWords">-</div>
+            <div class="fee-yearly" id="feeYearly" style="display:none"></div>
           </div>
           <div class="fee-amount" id="tFee">₹0/-</div>
         </div>

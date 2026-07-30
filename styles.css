@@ -1368,7 +1368,10 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 }
 .fee-note { margin-top: 3px; font-size: 11.5px; color: var(--gold-deep); }
 .fee-words { margin-top: 6px; font-size: 11.5px; font-style: italic; color: #6b7280; }
-.fee-amount { font-size: 30px; font-weight: 800; color: #111; white-space: nowrap; }
+.fee-amount { font-size: 27px; font-weight: 800; color: #111; white-space: nowrap; }
+.fee-yearly { font-size: 12px; font-weight: 700; color: var(--gold-deep, #a16207); margin-top: 6px; }
+.index-table .ix-total td { font-weight: 800; border-top: 1.5px solid #e6c76b; padding-top: 8px; }
+.index-table .ix-yearly td { color: var(--gold-deep, #a16207); }
 
 /* --- Annexure B : gold diamond bullets, two columns --- */
 .proposal .docs-block { margin-top: 0; }
@@ -1492,6 +1495,12 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   .sheet.proposal { padding: 0; }
   .prop-topbar { padding-top: 10mm; }
   .prop-footer { border-radius: 0; }   /* paper corners aren't rounded in print */
+  /* keep the footer strip whole and attached to the end of the content */
+  .sheet.proposal > .prop-footer {
+    margin-top: 8mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 
   .prop-topbar, .card-head, .card-pill, .prop-callout, .fee-box,
   .prop-annex-head i, .prop-footer, .card-list li::before,

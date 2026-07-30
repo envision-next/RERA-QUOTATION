@@ -460,8 +460,8 @@ const CATALOGUE = {
         ],
       },
       { title: "Quarterly Progress Reports", price: null, items: PKG_QPR },
-      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
       { title: "Professional Certifications", price: null, items: PKG_CERTS },
+      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
     ],
     exclusions: PKG_EXCL_B,
     docs: [
@@ -485,8 +485,8 @@ const CATALOGUE = {
         ],
       },
       { title: "Quarterly Progress Reports", price: null, items: PKG_QPR },
-      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
       { title: "Professional Certifications", price: null, items: ["Preparation and Certification of Form 1 (Architects Certificate)", ...PKG_CERTS] },
+      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
       { title: "RERA Annual Audit Consultation", price: null, items: PKG_AUDIT },
     ],
     exclusions: PKG_EXCL_CD,
@@ -511,12 +511,12 @@ const CATALOGUE = {
         ],
       },
       { title: "Quarterly Progress Reports", price: null, items: PKG_QPR },
-      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
       {
         title: "Professional Certifications",
         price: null,
         items: ["Preparation and Certification of Form 1 (Architects Certificate)", ...PKG_CERTS],
       },
+      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
       { title: "RERA Annual Audit Consultation", price: null, items: PKG_AUDIT },
     ],
     exclusions: PKG_EXCL_CD,
@@ -1062,6 +1062,18 @@ function rebuildIndex() {
       return `<tr><td class="ix-no">${String(i + 1).padStart(2, "0")}</td><td>${escapeHtml(name)}</td><td class="ix-amt">₹ ${fmt0(offeringAmount(k))}*</td></tr>`;
     })
     .join("");
+
+  // grand total (one-time services) + yearly payable (packages), shown
+  // separately so the client sees each service charge and the totals
+  const oneTimeSum = keys.filter((k) => !isYearly(k)).reduce((s, k) => s + offeringAmount(k), 0);
+  const yearlySum = keys.filter((k) => isYearly(k)).reduce((s, k) => s + offeringAmount(k), 0);
+  let totals = "";
+  if (oneTimeSum > 0)
+    totals += `<tr class="ix-total"><td></td><td>Grand Total (one-time)</td><td class="ix-amt">₹ ${fmt0(oneTimeSum)}*</td></tr>`;
+  if (yearlySum > 0)
+    totals += `<tr class="ix-total ix-yearly"><td></td><td>Yearly Payable (Packages)</td><td class="ix-amt">₹ ${fmt0(yearlySum)}*</td></tr>`;
+  tbl.innerHTML += totals;
+
   $("indexBlock").classList.toggle("empty", keys.length < 2);
 }
 
@@ -1240,33 +1252,60 @@ function readItems() {
 
 /* ---------- totals & proposal sync ---------- */
 
-function recalc() {
-  let subtotal = 0;
+// retainer packages are billed yearly; everything else is one-time
+function isYearly(key) {
+  return typeof key === "string" && key.indexOf("package_") === 0;
+}
 
+function recalc() {
+  let oneTime = 0;
+  let yearly = 0;
   allCards().forEach((card) => {
     const inp = card.querySelector(".i-amt");   // "included" cards carry no pill
-    if (inp) subtotal += parseAmt(inp.value);
+    if (!inp) return;
+    const v = parseAmt(inp.value);
+    if (isYearly(card.dataset.key)) yearly += v;
+    else oneTime += v;
   });
   const svcCount = selectedKeys().length;
 
   const discountRate = parseFloat($("discountRate").value) || 0;
   const taxRate = parseFloat($("taxRate").value) || 0;
+  const afterDisc = (a) => a - a * (discountRate / 100);
 
-  const discount = subtotal * (discountRate / 100);
-  const fee = subtotal - discount;          // Professional Fee (excl. GST)
-  const tax = fee * (taxRate / 100);
-  const grand = fee + tax;
+  const oneTimeFee = afterDisc(oneTime);      // Grand Total (one-time, excl. GST)
+  const yearlyFee = afterDisc(yearly);        // Yearly Payable (excl. GST)
+  const totalFee = oneTimeFee + yearlyFee;
+  const tax = totalFee * (taxRate / 100);
+  const grand = totalFee + tax;
 
-  // sheet: Professional Fee box (exclusive of GST, per the design)
-  $("tFee").textContent = "₹" + fmt0(fee) + "/-";
+  // grand total in the fee box EXCLUDES the yearly package fee — that is
+  // called out separately below as "Yearly Payable"
+  const primaryFee = oneTime > 0 ? oneTimeFee : yearlyFee;
+  $("tFee").textContent = "₹" + fmt0(primaryFee) + "/-";
   $("feeGstPct").textContent = taxRate;
   $("feeDiscNote").textContent = discountRate > 0 ? ` · Includes ${discountRate}% discount` : "";
   $("amountWords").textContent =
-    fee > 0 ? "Rupees " + numberToWords(Math.round(fee)) + " Only" : "-";
+    primaryFee > 0 ? "Rupees " + numberToWords(Math.round(primaryFee)) + " Only" : "-";
+  if ($("feeLabel"))
+    $("feeLabel").textContent = oneTime === 0 && yearly > 0 ? "Professional Fee (Yearly)" : "Professional Fee";
+
+  const yEl = $("feeYearly");
+  if (yEl) {
+    if (yearly > 0 && oneTime > 0) {
+      yEl.textContent = `Yearly Payable (Packages): ₹${fmt0(yearlyFee)}/- + ${taxRate}% GST`;
+      yEl.style.display = "";
+    } else if (yearly > 0) {
+      yEl.textContent = "This package fee is payable yearly.";
+      yEl.style.display = "";
+    } else {
+      yEl.style.display = "none";
+    }
+  }
 
   // panel preview (working numbers incl. GST)
   $("svcCount").textContent = svcCount;
-  $("pSubtotal").textContent = "₹ " + fmt0(fee);
+  $("pSubtotal").textContent = "₹ " + fmt0(totalFee);
   $("gstPct").textContent = `(${taxRate}%)`;
   $("pGst").textContent = "₹ " + fmt(tax);
   $("pTotal").textContent = "₹ " + fmt(grand);
@@ -1360,6 +1399,8 @@ function syncCustomer() {
   $("coPromoter").textContent = name || "Promoter Name";
   $("coProject").textContent = proj || "Project Name";
   $("coRera").textContent = rera || "Registration Number";
+  // drop the "bearing Project Registration Number …" phrase when blank
+  $("coReraPhrase").style.display = rera ? "" : "none";
   syncProposal();
 }
 
