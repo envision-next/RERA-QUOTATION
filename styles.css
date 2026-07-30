@@ -1476,8 +1476,12 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 
 /* --- print: keep the design's inks & keep blocks whole --- */
 @media print {
-  /* pagination: each on-screen sheet = exactly one A4 page */
-  .sheet { display: flex; page-break-after: always; break-after: page; }
+  /* start each on-screen sheet on a fresh page, but let a tall sheet
+     (the proposal) FLOW across as many A4 pages as it needs. A flex
+     container gets clipped to one page by the browser, which was
+     cutting off everything after page 1 — so force block flow here. */
+  .sheet { display: block; page-break-after: always; break-after: page; }
+  .sheet.fixed-page { display: block; }
   #pagesContainer .sheet:last-child { page-break-after: auto; break-after: auto; }
 
   .sheet.proposal { padding: 0; }
