@@ -181,15 +181,18 @@ body::after {
   width: 38px;
   height: 38px;
   border-radius: 11px;
-  background: var(--brand-grad);
-  color: #fff;
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: .5px;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 18px rgba(58, 99, 255, 0.45);
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
 }
 
 .app-title { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.1; color: var(--txt); }
