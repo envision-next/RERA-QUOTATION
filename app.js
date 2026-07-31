@@ -1211,8 +1211,9 @@ function rebuildIndex() {
 function rebuildOfferingFees() {
   document.querySelectorAll(".offering-fee").forEach((el) => el.remove());
   const keys = selectedKeys();
-  const customCount = document.querySelectorAll(".svc-card.custom-card").length;
-  if (keys.length + customCount < 2) return;
+  // per-offering strips only make sense with 2+ offerings — a custom
+  // item alone must not trigger them
+  if (keys.length < 2) return;
   const gst = parseFloat($("taxRate").value) || 0;
   keys.forEach((key) => {
     const cards = [...document.querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"]`)];
