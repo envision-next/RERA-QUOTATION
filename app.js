@@ -55,6 +55,7 @@ const ICON_CHECK = SVG + '<polyline points="20 6 9 17 4 12"/></svg>';
 const ICON_ALERT = SVG + '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 const ICON_LOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const ICON_UNLOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
+const ICON_GRIP = '<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
 
 const Store = {
   remote() {
@@ -852,6 +853,53 @@ function deselectService(key) {
   recalc();
 }
 
+/* ---------- drag & drop: reorder sections within an offering ---------- */
+
+let DRAG_CARD = null;
+
+function wireSectionDrag(card, key) {
+  const handle = card.querySelector(".drag-handle");
+  // the card is only draggable while the grip is held, so text
+  // selection and contenteditable keep working everywhere else
+  handle.addEventListener("mousedown", () => (card.draggable = true));
+  handle.addEventListener("mouseup", () => (card.draggable = false));
+  card.addEventListener("dragstart", (e) => {
+    DRAG_CARD = card;
+    card.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", "");
+  });
+  card.addEventListener("dragend", () => {
+    card.draggable = false;
+    card.classList.remove("dragging");
+    DRAG_CARD = null;
+    document
+      .querySelectorAll(".drop-above, .drop-below")
+      .forEach((c) => c.classList.remove("drop-above", "drop-below"));
+  });
+  card.addEventListener("dragover", (e) => {
+    if (!DRAG_CARD || DRAG_CARD === card || DRAG_CARD.dataset.key !== card.dataset.key) return;
+    e.preventDefault();
+    const r = card.getBoundingClientRect();
+    const above = e.clientY < r.top + r.height / 2;
+    card.classList.toggle("drop-above", above);
+    card.classList.toggle("drop-below", !above);
+  });
+  card.addEventListener("dragleave", () => card.classList.remove("drop-above", "drop-below"));
+  card.addEventListener("drop", (e) => {
+    if (!DRAG_CARD || DRAG_CARD === card || DRAG_CARD.dataset.key !== card.dataset.key) return;
+    e.preventDefault();
+    const above = card.classList.contains("drop-above");
+    card.classList.remove("drop-above", "drop-below");
+    pushUndo();
+    if (above) card.before(DRAG_CARD);
+    else card.after(DRAG_CARD);
+    updateRestoreBar(key);
+    rebuildDocs();
+    recalc();
+  });
+}
+
 /* removed sections are remembered (per offering, this session) so
    they can be added back with one click from the restore bar */
 let REMOVED_SECS = {};
@@ -1013,16 +1061,19 @@ function addSectionCards(key, secs) {
   if (serviceCard(key)) return;
   let prev = null;
   // newer saves carry each section's catalogue index, so removed
-  // sections stay removed on load/undo; legacy saves map by position
+  // sections stay removed and a dragged order is reproduced exactly;
+  // legacy saves map by position in catalogue order
   const hasIdx = Array.isArray(secs) && secs.length > 0 && secs[0] && secs[0].idx !== undefined;
+  if (hasIdx) {
+    secs.forEach((s) => {
+      const sec = CATALOGUE[key].sections[s.idx];
+      if (!sec) return;
+      prev = addSectionCard(key, s.idx, sec.title, s.amt != null, s.amt || 0, s.sub, sec.hidePrice, prev);
+    });
+    return;
+  }
   CATALOGUE[key].sections.forEach((sec, i) => {
-    let saved = null;
-    if (hasIdx) {
-      saved = secs.find((s) => s.idx === i);
-      if (!saved) return; // this section was removed when saved
-    } else if (secs) {
-      saved = secs[i];
-    }
+    const saved = secs ? secs[i] : null;
     const priced = saved ? saved.amt != null : sec.price != null;
     const amount = saved ? saved.amt || 0 : sec.price || 0;
     const sub = saved ? saved.sub : sec.items.join("\n");
@@ -1084,6 +1135,7 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afte
   card.dataset.uid = String(++CARD_UID);
   card.innerHTML = `
     <div class="card-head">
+      <button class="drag-handle no-print" title="Drag to reorder within this offering">${ICON_GRIP}</button>
       <div class="card-title" contenteditable="true" spellcheck="false">${escapeHtml(title)}</div>
       ${sectionPillHtml(priced, amount, hidePrice)}
       <button class="row-del no-print" title="Remove this section">${ICON_X}</button>
@@ -1091,6 +1143,7 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afte
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(sub)}</ol>
   `;
   card.querySelector(".row-del").addEventListener("click", () => removeSectionCard(card, key));
+  wireSectionDrag(card, key);
   bindSectionAmt(card, key);
 
   if (afterEl) afterEl.after(card);
