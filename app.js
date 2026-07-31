@@ -2609,6 +2609,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("quoteNo").value = no;
     syncMeta();
   });
+
+  // ?demo=1 preselects a spread of services — used for automated
+  // print/PDF testing only
+  if (new URLSearchParams(location.search).has("demo")) {
+    selectService("project_registration");
+    selectService("package_a");
+    selectService("extension", 80000);
+  }
   $("taxRate").value = RATES.gst ?? 18;
   $("terms").value = DEFAULT_TERMS;
   setDefaultDates();
