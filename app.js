@@ -837,6 +837,8 @@ function deselectService(key) {
   panelRow(key).classList.remove("on");
   amt.hidden = true;
   offeringHead(key)?.remove();
+  delete REMOVED_SECS[key];
+  document.querySelector(`.restore-bar[data-key="${key}"]`)?.remove();
   // a sectioned offering owns several cards — remove them all
   document.querySelectorAll(`.svc-card[data-key="${key}"]`).forEach((card) => {
     document
@@ -848,9 +850,25 @@ function deselectService(key) {
   recalc();
 }
 
+/* removed sections are remembered (per offering, this session) so
+   they can be added back with one click from the restore bar */
+let REMOVED_SECS = {};
+
 /* remove a SINGLE section of a multi-section offering; only when the
    last remaining section goes do we deselect the whole offering */
 function removeSectionCard(card, key) {
+  // snapshot the section (with any edits) so it can be restored
+  const inp = card.querySelector(".i-amt");
+  (REMOVED_SECS[key] = REMOVED_SECS[key] || []).push({
+    secIdx: parseInt(card.dataset.sec, 10) || 0,
+    title: card.querySelector(".card-title")?.innerText.trim() || "Section",
+    priced: !!inp,
+    hidePrice: inp ? inp.type === "hidden" : false,
+    amount: inp ? parseAmt(inp.value) : 0,
+    sub: cardSubLines(card).join("\n"),
+  });
+  REMOVED_SECS[key].sort((a, b) => a.secIdx - b.secIdx);
+
   document
     .querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"]`)
     .forEach((c) => c.remove());
@@ -862,6 +880,46 @@ function removeSectionCard(card, key) {
   }
   const panelAmt = panelAmtInput(key);
   if (panelAmt) panelAmt.value = fmt0(serviceTotal(key));
+  updateRestoreBar(key);
+  rebuildDocs();
+  recalc();
+}
+
+/* "+ Add Section" bar (screen only) listing this offering's removed
+   sections — clicking one puts it back in its original position */
+function updateRestoreBar(key) {
+  document.querySelector(`.restore-bar[data-key="${key}"]`)?.remove();
+  const removed = REMOVED_SECS[key];
+  if (!removed || !removed.length) return;
+  const cards = [...document.querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"]`)];
+  if (!cards.length) return;
+  const bar = document.createElement("div");
+  bar.className = "restore-bar no-print";
+  bar.dataset.key = key;
+  bar.innerHTML =
+    `<span class="rb-label">Add section:</span>` +
+    removed
+      .map((s, i) => `<button class="rb-btn" data-i="${i}">＋ ${escapeHtml(s.title)}</button>`)
+      .join("");
+  bar.querySelectorAll(".rb-btn").forEach((btn) =>
+    btn.addEventListener("click", () => restoreSection(key, parseInt(btn.dataset.i, 10)))
+  );
+  cards[cards.length - 1].after(bar);
+}
+
+function restoreSection(key, i) {
+  const removed = REMOVED_SECS[key];
+  const s = removed && removed[i];
+  if (!s) return;
+  removed.splice(i, 1);
+  const cards = [...document.querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"]`)];
+  // back into catalogue order: after the last card with a lower index
+  const afterEl = [...cards].reverse().find((c) => (parseInt(c.dataset.sec, 10) || 0) < s.secIdx) || null;
+  const card = addSectionCard(key, s.secIdx, s.title, s.priced, s.amount, s.sub, s.hidePrice, afterEl);
+  if (!afterEl && cards.length) cards[0].before(card);
+  const panelAmt = panelAmtInput(key);
+  if (panelAmt) panelAmt.value = fmt0(serviceTotal(key));
+  updateRestoreBar(key);
   rebuildDocs();
   recalc();
 }
@@ -1671,7 +1729,8 @@ function clearSheet() {
       amt.value = "";
     }
   });
-  document.querySelectorAll(".svc-card, .offering-head").forEach((c) => c.remove());
+  document.querySelectorAll(".svc-card, .offering-head, .restore-bar, .offering-fee").forEach((c) => c.remove());
+  REMOVED_SECS = {};
   setOtherState("extension", false, 1);
   setOtherState("correction", false, 1);
   delete $("propTitle").dataset.custom;
