@@ -1879,6 +1879,13 @@ function repaginate() {
     }
     const h = outerH(b);
     const cur = pages[pages.length - 1];
+    // every offering begins on a fresh page — its heading never
+    // continues below other content
+    if (b.classList.contains("offering-head") && used > 0) {
+      pages.push([b]);
+      used = h;
+      continue;
+    }
     // a block's bottom margin is invisible at the page's bottom edge —
     // let it (plus a little slack) overflow rather than waste the page
     const mb = parseFloat(getComputedStyle(b).marginBottom) || 0;
@@ -1887,14 +1894,12 @@ function repaginate() {
       used += h;
       continue;
     }
-    // an offering's FIRST card prefers not to split — but when a good
-    // chunk of the page is still free, splitting beats a huge gap
+    // an offering's FIRST card never splits — it stays with its heading
     const offeringStart =
       b.classList.contains("svc-card") &&
       b.dataset.key &&
       (b.dataset.sec === undefined || b.dataset.sec === "0");
-    const minRoom = offeringStart ? 350 : 240;
-    if (b.classList.contains("svc-card") && !focusCard && budget - used >= minRoom) {
+    if (b.classList.contains("svc-card") && !offeringStart && !focusCard && budget - used >= 240) {
       const cont = trySplitCard(b, budget - used);
       if (cont) {
         cur.push(b);
