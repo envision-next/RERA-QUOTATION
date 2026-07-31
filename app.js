@@ -2592,6 +2592,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   // trapped in a stacking context and paints behind the sheet
   document.body.appendChild($("editsCard"));
 
+  // keep the sidebar's sticky offsets in step with the toolbar, which
+  // can wrap to two rows on narrower windows
+  const setAppbarVar = () => {
+    const bar = document.querySelector(".appbar");
+    if (bar) document.documentElement.style.setProperty("--appbar-h", bar.offsetHeight + "px");
+  };
+  setAppbarVar();
+  window.addEventListener("resize", setAppbarVar);
+
   RATES = loadRates();
   renderServicePicker();
   renderFeeEditor();

@@ -280,10 +280,12 @@ input[readonly] { opacity: .72; cursor: default; }
   flex-direction: column;
   gap: 16px;
   position: sticky;
-  top: 84px;
+  /* --appbar-h is kept up to date by app.js — when the toolbar wraps
+     to two rows the panel still fits the viewport exactly */
+  top: calc(var(--appbar-h, 64px) + 20px);
   /* independent scroll: the panel scrolls on its own without
      moving the quotation sheet on the right */
-  max-height: calc(100vh - 100px);
+  max-height: calc(100vh - var(--appbar-h, 64px) - 36px);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 6px;
