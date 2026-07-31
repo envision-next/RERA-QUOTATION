@@ -2365,7 +2365,7 @@ function numberToWords(num) {
    assignment changes, so typing never loses focus. */
 
 const PAGE_BUDGET = 990;        // usable px per page (A4 297mm ≈ 1122px)
-const LETTERHEAD_ALLOWANCE = 130;
+const LETTERHEAD_ALLOWANCE = 105;
 let CARD_UID = 0;               // stable identity across page moves & splits
 
 function outerH(el) {
@@ -2499,15 +2499,15 @@ function repaginate() {
       used += h;
       continue;
     }
-    // screen-only widgets (add buttons, restore bars — invisible in
-    // print) always squeeze onto the current page
+    // screen-only widgets (add buttons, restore bars) are invisible in
+    // print, so they cost NO page budget — counting them made pages
+    // look full and pushed printable content to the next page
     if (
       b.classList.contains("offering-add") ||
       b.classList.contains("restore-bar") ||
       b.classList.contains("btn-add")
     ) {
       cur.push(b);
-      used += h;
       continue;
     }
     // closing blocks (per-offering fee strips, sign-off) never sit
@@ -2533,12 +2533,23 @@ function repaginate() {
         let i = cur.length - 1;
         const carried = [];
         let realH = 0;
+        let stoppedAtStrip = false;
         while (i > 0) {
           const el = cur[i];
           if (isWidget(el)) { carried.unshift(el); i--; continue; }
+          // never carry another fee strip backward — a strip belongs
+          // to the content above it
+          if (el.classList.contains("offering-fee")) { stoppedAtStrip = true; break; }
           const eh = outerH(el);
           if (eh <= 350 && realH + eh <= 520) { carried.unshift(el); realH += eh; i--; continue; }
           break;
+        }
+        // a strip directly above means this block's own content is on
+        // this page — squeeze harder rather than break the group
+        if (stoppedAtStrip && h - mb <= budget - used + 130) {
+          cur.push(b);
+          used += h;
+          continue;
         }
         const prev = i > 0 ? cur[i] : null;
         // best: split that tall card so its tail opens the next page
@@ -2766,6 +2777,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
   setAppbarVar();
   window.addEventListener("resize", setAppbarVar);
+  // fonts change block heights — re-pack once they are ready
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedulePaginate);
 
   RATES = loadRates();
   renderServicePicker();
