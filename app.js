@@ -1480,9 +1480,31 @@ function rebuildOfferingFees() {
       const right = f.querySelector(".of-right");
       if (f.dataset.key && right) right.innerHTML = profRightHtml(f.dataset.key, gst0);
     });
-    document.querySelectorAll(".offering-fee.gov-fee").forEach((f) => {
-      const right = f.querySelector(".of-right");
-      if (f.dataset.key && right) right.innerHTML = `<div class="of-amt">₹${fmt0(govTotal(f.dataset.key))}/-</div>`;
+    // gov strips appear/update/disappear LIVE as the value is typed —
+    // they sit below the cursor, so the focused card never moves
+    selectedKeys().forEach((key) => {
+      const gv = govTotal(key);
+      let strip = document.querySelector(`.offering-fee.gov-fee[data-key="${key}"]`);
+      if (gv > 0 && !strip) {
+        let anchor = groupLast(key);
+        if (!anchor) return;
+        if (anchor.nextElementSibling && anchor.nextElementSibling.classList.contains("restore-bar"))
+          anchor = anchor.nextElementSibling;
+        strip = document.createElement("div");
+        strip.className = "offering-fee gov-fee";
+        strip.dataset.key = key;
+        strip.innerHTML = `
+          <div class="of-left">
+            <div class="of-label">Government Fees</div>
+            <div class="of-note">GST not applicable</div>
+          </div>
+          <div class="of-right"><div class="of-amt">₹${fmt0(gv)}/-</div></div>`;
+        anchor.after(strip);
+      } else if (strip) {
+        if (gv > 0)
+          strip.querySelector(".of-right").innerHTML = `<div class="of-amt">₹${fmt0(gv)}/-</div>`;
+        else strip.remove();
+      }
     });
     return;
   }
