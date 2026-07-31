@@ -1382,6 +1382,22 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .offering-fee .of-line span { font-size: 11px; font-weight: 700; color: #6b5310; }
 .offering-fee .of-line b { font-size: 17px; font-weight: 800; color: #111; }
 
+/* price <-> "Included in our scope" swap button (screen only) */
+.pill-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--gold-deep, #a16207);
+  padding: 3px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  opacity: .55;
+  transition: opacity .15s, background .15s;
+}
+.pill-toggle:hover { opacity: 1; background: rgba(0, 0, 0, .06); }
+.pill-toggle .ico { width: 15px; height: 15px; }
+
 /* per-item billing toggle: Per Year <-> One-time (screen only) */
 .yr-toggle {
   font: inherit;
@@ -1451,6 +1467,16 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-note { margin-top: 3px; font-size: 11.5px; color: var(--gold-deep); }
 .fee-words { margin-top: 6px; font-size: 11.5px; font-style: italic; color: #6b7280; }
 .fee-amount { font-size: 27px; font-weight: 800; color: #111; white-space: nowrap; }
+/* GRAND TOTAL look (2+ offerings): dark box, gold accents — clearly
+   different from the cream per-offering strips */
+.fee-box.grand { background: #141414; border-left-color: var(--gold, #e9b308); }
+.fee-box.grand .fee-label { color: var(--gold, #e9b308); }
+.fee-box.grand .fee-note { color: #cbb26a; }
+.fee-box.grand .fee-words { color: #ddd; }
+.fee-box.grand .fee-amount { color: #fff; }
+.fee-box.grand .fee-line b { color: #fff; }
+.fee-box.grand .fee-line span { color: var(--gold, #e9b308); }
+
 /* combined one-time + yearly total: two labelled lines, right aligned */
 .fee-amount.fee-combined { font-size: 19px; white-space: normal; text-align: right; }
 .fee-combined .fee-line { display: flex; justify-content: flex-end; align-items: baseline; gap: 12px; }

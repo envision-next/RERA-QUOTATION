@@ -57,6 +57,7 @@ const ICON_LOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path
 const ICON_UNLOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
 const ICON_GRIP = '<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
 const ICON_PLUS = SVG + '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+const ICON_SWAP = SVG + '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
 
 const Store = {
   remote() {
@@ -779,7 +780,7 @@ function panelAmtInput(key) {
 }
 
 /* selecting a service = panel state + Annexure A card(s) + docs rebuild */
-function selectService(key, amount, subText, customAmt, secs, headText) {
+function selectService(key, amount, subText, customAmt, secs, headText, included) {
   pushUndo();
   const check = panelCheck(key);
   const amt = panelAmtInput(key);
@@ -792,8 +793,8 @@ function selectService(key, amount, subText, customAmt, secs, headText) {
     addSectionCards(key, secs);
     amt.value = fmt0(serviceTotal(key));
   } else {
-    amt.value = fmt0(amount);
-    addServiceCard(key, amount, subText ?? CATALOGUE[key].subs.join("\n"), customAmt);
+    amt.value = fmt0(included ? 0 : amount);
+    addServiceCard(key, amount, subText ?? CATALOGUE[key].subs.join("\n"), customAmt, included);
   }
   addOfferingHead(key, headText);
   rebuildDocs();
@@ -1038,25 +1039,10 @@ function scopeListHtml(subText) {
     .join("");
 }
 
-function addServiceCard(key, amount, subText, customAmt) {
-  if (serviceCard(key)) return serviceCard(key);
-  const card = document.createElement("div");
-  card.className = "svc-card";
-  card.dataset.key = key;
-  card.dataset.uid = String(++CARD_UID);
-  if (customAmt) card.dataset.customAmt = "1";
-  card.innerHTML = `
-    <div class="card-head">
-      <div class="card-title" contenteditable="true" spellcheck="false">${escapeHtml(CATALOGUE[key].label)}</div>
-      <div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount)}"><span>/-</span></div>
-      <button class="row-del no-print" title="Remove service">${ICON_X}</button>
-    </div>
-    <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(subText)}</ol>
-  `;
-  card.querySelector(".row-del").addEventListener("click", () => deselectService(key));
-
-  // sheet amount -> panel amount (marks the amount as custom)
-  const amt = card.querySelector(".i-amt");
+/* sheet amount -> panel amount (marks the amount as custom) */
+function bindServiceAmt(card, key) {
+  const amt = card.querySelector('input.i-amt:not([type="hidden"])');
+  if (!amt) return;
   amt.addEventListener("input", () => {
     card.dataset.customAmt = "1";
     const panelAmt = panelAmtInput(key);
@@ -1065,6 +1051,31 @@ function addServiceCard(key, amount, subText, customAmt) {
   });
   amt.addEventListener("focus", () => (amt.value = parseAmt(amt.value) || ""));
   amt.addEventListener("blur", () => (amt.value = fmt0(parseAmt(amt.value))));
+}
+
+function addServiceCard(key, amount, subText, customAmt, included) {
+  if (serviceCard(key)) return serviceCard(key);
+  const card = document.createElement("div");
+  card.className = "svc-card";
+  card.dataset.key = key;
+  card.dataset.uid = String(++CARD_UID);
+  if (customAmt) card.dataset.customAmt = "1";
+  if (included) card.dataset.included = "1";
+  const pill = included
+    ? `<div class="card-pill card-pill-outline">Included in our scope</div><input type="hidden" class="i-amt" value="0">`
+    : `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount)}"><span>/-</span></div>`;
+  card.innerHTML = `
+    <div class="card-head">
+      <div class="card-title" contenteditable="true" spellcheck="false">${escapeHtml(CATALOGUE[key].label)}</div>
+      ${pill}
+      <button class="pill-toggle no-print" title="Switch between a price and Included in our scope">${ICON_SWAP}</button>
+      <button class="row-del no-print" title="Remove service">${ICON_X}</button>
+    </div>
+    <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(subText)}</ol>
+  `;
+  card.querySelector(".row-del").addEventListener("click", () => deselectService(key));
+  card.querySelector(".pill-toggle").addEventListener("click", () => toggleServicePill(card, key));
+  bindServiceAmt(card, key);
 
   // service cards keep catalogue order; a custom card inside an
   // offering counts at its parent's position — only standalone
@@ -1083,6 +1094,50 @@ function addServiceCard(key, amount, subText, customAmt) {
     else $("svcCards").appendChild(card);
   }
   return card;
+}
+
+/* flip a section between a price and "Included in our scope"; the
+   last price is remembered so flipping back restores it */
+function toggleSectionPill(card, key) {
+  pushUndo();
+  const pill = card.querySelector(".card-pill");
+  const wasIncluded = pill.classList.contains("card-pill-outline");
+  if (!wasIncluded) {
+    const inp = card.querySelector(".i-amt");
+    card.dataset.lastAmt = String(parseAmt(inp?.value) || 0);
+    pill.outerHTML = sectionPillHtml(false, 0);
+  } else {
+    const secIdx = parseInt(card.dataset.sec, 10) || 0;
+    const catAmt =
+      (CATALOGUE[key].sections && CATALOGUE[key].sections[secIdx] && CATALOGUE[key].sections[secIdx].price) || 0;
+    pill.outerHTML = sectionPillHtml(true, parseAmt(card.dataset.lastAmt || "0") || catAmt);
+    bindSectionAmt(card, key);
+  }
+  const panelAmt = panelAmtInput(key);
+  if (panelAmt) panelAmt.value = fmt0(serviceTotal(key));
+  recalc();
+}
+
+/* same flip for a single-card (individual) service */
+function toggleServicePill(card, key) {
+  pushUndo();
+  const pill = card.querySelector(".card-pill");
+  const wasIncluded = pill.classList.contains("card-pill-outline");
+  if (!wasIncluded) {
+    card.dataset.lastAmt = String(parseAmt(card.querySelector(".i-amt")?.value) || 0);
+    card.dataset.included = "1";
+    pill.outerHTML = `<div class="card-pill card-pill-outline">Included in our scope</div><input type="hidden" class="i-amt" value="0">`;
+  } else {
+    delete card.dataset.included;
+    card.querySelector('input.i-amt[type="hidden"]')?.remove();
+    const amt = parseAmt(card.dataset.lastAmt || "0") || RATES.amounts[key] || 0;
+    card.querySelector(".card-pill").outerHTML =
+      `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amt)}"><span>/-</span></div>`;
+    bindServiceAmt(card, key);
+  }
+  const panelAmt = panelAmtInput(key);
+  if (panelAmt) panelAmt.value = fmt0(card.dataset.included === "1" ? 0 : parseAmt(card.querySelector(".i-amt").value));
+  recalc();
 }
 
 /* sectioned offerings (registration & retainer packages) render one
@@ -1164,16 +1219,21 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afte
   card.dataset.key = key;
   card.dataset.sec = String(secIdx);
   card.dataset.uid = String(++CARD_UID);
+  // registration & individual sections can flip between a price and
+  // "Included in our scope"; package sections keep their fixed setup
+  const canToggle = !isYearly(key) && !hidePrice;
   card.innerHTML = `
     <div class="card-head">
       <button class="drag-handle no-print" title="Drag to reorder within this offering">${ICON_GRIP}</button>
       <div class="card-title" contenteditable="true" spellcheck="false">${escapeHtml(title)}</div>
       ${sectionPillHtml(priced, amount, hidePrice)}
+      ${canToggle ? `<button class="pill-toggle no-print" title="Switch between a price and Included in our scope">${ICON_SWAP}</button>` : ""}
       <button class="row-del no-print" title="Remove this section">${ICON_X}</button>
     </div>
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(sub)}</ol>
   `;
   card.querySelector(".row-del").addEventListener("click", () => removeSectionCard(card, key));
+  card.querySelector(".pill-toggle")?.addEventListener("click", () => toggleSectionPill(card, key));
   wireSectionDrag(card);
   bindSectionAmt(card, key);
 
@@ -1498,6 +1558,7 @@ function readItems() {
           amt: parseAmt(card.querySelector(".i-amt").value),
           sub: cardSubLines(card).join("\n"),
           customAmt: card.dataset.customAmt === "1",
+          included: card.dataset.included === "1",
           head: offeringHead(key)?.querySelector(".offering-title")?.innerText.trim(),
         });
       }
@@ -1564,8 +1625,17 @@ function recalc() {
   $("feeDiscNote").textContent = discountRate > 0 ? ` · Includes ${discountRate}% discount` : "";
   $("amountWords").textContent =
     primaryFee > 0 ? "Rupees " + numberToWords(Math.round(primaryFee)) + " Only" : "-";
+  // with several offerings the closing box is the GRAND total — give
+  // it a distinct dark look so it can't be confused with the
+  // per-offering strips above it
+  const grandMode = selectedKeys().length >= 2;
+  document.querySelector(".fee-box")?.classList.toggle("grand", grandMode);
   if ($("feeLabel"))
-    $("feeLabel").textContent = oneTime === 0 && yearly > 0 ? "Professional Fee (Yearly)" : "Professional Fee";
+    $("feeLabel").textContent = grandMode
+      ? "Grand Total"
+      : oneTime === 0 && yearly > 0
+        ? "Professional Fee (Yearly)"
+        : "Professional Fee";
 
   const yEl = $("feeYearly");
   if (yEl) {
@@ -1885,7 +1955,7 @@ function loadQuotationInner(q) {
     if (!CATALOGUE[s.key]) return; // catalogue entry removed since save
     // legacy " • "-joined inclusions convert to lines
     const sub = s.sub ? s.sub.split(" • ").join("\n") : undefined;
-    selectService(s.key, s.amt, sub, s.customAmt, s.secs, s.head);
+    selectService(s.key, s.amt, sub, s.customAmt, s.secs, s.head, s.included);
   });
   (q.customItems || []).forEach((it) => addCustomCard(it));
 
@@ -2206,13 +2276,13 @@ function repaginate() {
       continue;
     }
     // short closing blocks (fee strips, the grand-total box, the
-    // sign-off) never sit alone on a fresh page — squeeze them onto
-    // the current page with a bigger overflow allowance instead
+    // sign-off) NEVER sit alone on a fresh page — they always squeeze
+    // onto the current page; screen-only widgets above them free the
+    // equivalent space in print
     if (
-      (b.classList.contains("offering-fee") ||
-        b.classList.contains("fee-box") ||
-        b.classList.contains("prop-signoff")) &&
-      h - mb <= budget - used + 140
+      b.classList.contains("offering-fee") ||
+      b.classList.contains("fee-box") ||
+      b.classList.contains("prop-signoff")
     ) {
       cur.push(b);
       used += h;
