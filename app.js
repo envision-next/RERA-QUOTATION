@@ -2370,17 +2370,37 @@ function repaginate() {
         cur.push(b);
         used += h;
       } else {
-        // carry trailing screen-only widgets AND one real block along,
-        // so the new page opens with content, not a widget
-        const carried = [b];
         const isWidget = (el) =>
           el.classList.contains("offering-add") ||
           el.classList.contains("restore-bar") ||
           el.classList.contains("btn-add");
-        while (cur.length > 1 && isWidget(cur[cur.length - 1])) carried.unshift(cur.pop());
-        if (cur.length > 1) carried.unshift(cur.pop());
-        pages.push(carried);
-        used = carried.reduce((s, el) => s + outerH(el), 0);
+        // the real block above, peeking past screen-only widgets
+        let wi = cur.length - 1;
+        while (wi > 0 && isWidget(cur[wi])) wi--;
+        const prev = wi > 0 ? cur[wi] : null;
+        // best: split that card so its tail opens the next page with
+        // the fee strip — no void behind, nothing orphaned
+        let cont = null;
+        if (prev && prev.classList.contains("svc-card") && !focusCard) {
+          const usedBefore =
+            cur.slice(0, wi + 1).reduce((s, el) => s + outerH(el), 0) - outerH(prev);
+          cont = trySplitCard(prev, budget - usedBefore);
+        }
+        if (cont) {
+          const widgets = cur.splice(wi + 1);
+          const grp = [cont, ...widgets, b];
+          pages.push(grp);
+          used = grp.reduce((s, el) => s + outerH(el), 0);
+        } else if (prev && outerH(prev) <= 350) {
+          // short neighbour: carry it (and the widgets) along
+          const grp = [...cur.splice(wi), b];
+          pages.push(grp);
+          used = grp.reduce((s, el) => s + outerH(el), 0);
+        } else {
+          // tall, unsplittable neighbour: squeezing beats a big void
+          cur.push(b);
+          used += h;
+        }
       }
       continue;
     }
