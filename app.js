@@ -2409,7 +2409,9 @@ function repaginate() {
       b.classList.contains("svc-card") &&
       b.dataset.key &&
       (b.dataset.sec === undefined || b.dataset.sec === "0");
-    if (b.classList.contains("svc-card") && !offeringStart && !focusCard && budget - used >= 240) {
+    // split whenever at least the card head + a row or two fit — a
+    // partially filled table beats a blank stretch
+    if (b.classList.contains("svc-card") && !offeringStart && !focusCard && budget - used >= 120) {
       const cont = trySplitCard(b, budget - used);
       if (cont) {
         cur.push(b);
