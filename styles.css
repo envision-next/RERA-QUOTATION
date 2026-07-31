@@ -1378,6 +1378,9 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .offering-fee .of-amt { font-size: 21px; font-weight: 800; color: #111; white-space: nowrap; }
 .offering-fee .of-right { text-align: right; }
 .offering-fee .of-per { font-size: 11px; font-weight: 700; color: #8a6d1a; margin-top: 2px; }
+.offering-fee .of-line { display: flex; justify-content: flex-end; align-items: baseline; gap: 10px; }
+.offering-fee .of-line span { font-size: 11px; font-weight: 700; color: #6b5310; }
+.offering-fee .of-line b { font-size: 17px; font-weight: 800; color: #111; }
 
 /* per-item billing toggle: Per Year <-> One-time (screen only) */
 .yr-toggle {

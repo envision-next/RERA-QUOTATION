@@ -1066,12 +1066,14 @@ function addServiceCard(key, amount, subText, customAmt) {
   amt.addEventListener("focus", () => (amt.value = parseAmt(amt.value) || ""));
   amt.addEventListener("blur", () => (amt.value = fmt0(parseAmt(amt.value))));
 
-  // service cards keep catalogue order; custom cards always sit below
+  // service cards keep catalogue order; a custom card inside an
+  // offering counts at its parent's position — only standalone
+  // custom cards sit below everything
   const myIdx = ORDER.indexOf(key);
   let anchor = null;
   for (const el of allCards()) {
-    const k = el.dataset.key;
-    if (!k) { anchor = el; break; }            // first custom card
+    const k = el.dataset.key || el.dataset.parent;
+    if (!k) { anchor = el; break; }            // first standalone custom card
     if (ORDER.indexOf(k) > myIdx) { anchor = el; break; }
   }
   if (anchor) anchor.parentNode.insertBefore(card, anchor);
@@ -1180,7 +1182,7 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afte
     const myIdx = ORDER.indexOf(key);
     let anchor = null;
     for (const el of allCards()) {
-      const k = el.dataset.key;
+      const k = el.dataset.key || el.dataset.parent;
       if (!k) { anchor = el; break; }
       if (ORDER.indexOf(k) > myIdx) { anchor = el; break; }
     }
@@ -1262,18 +1264,40 @@ function rebuildOfferingFees() {
       anchor = anchor.nextElementSibling;
 
     if (showFees) {
+      // items billed differently from the offering itself get their
+      // own labelled line; the rest merges into the offering's amount
+      const offYearly = isYearly(key);
+      let main = CATALOGUE[key].sections
+        ? serviceTotal(key)
+        : serviceCard(key)
+          ? parseAmt(serviceCard(key).querySelector(".i-amt").value)
+          : 0;
+      const odd = [];
+      document.querySelectorAll(`.svc-card.custom-card[data-parent="${key}"]`).forEach((c) => {
+        const amt = parseAmt(c.querySelector(".i-amt")?.value);
+        const yr = c.dataset.yearly === "1";
+        if (yr === offYearly) main += amt;
+        else odd.push({ name: c.querySelector(".i-desc")?.value.trim() || "Custom item", amt, yr });
+      });
+      const mainLabel = offYearly ? "Package (Per Year)" : "One-time";
+      const right = odd.length
+        ? odd
+            .map(
+              (o) =>
+                `<div class="of-line"><span>${escapeHtml(o.name)}${o.yr ? " (Per Year)" : ""}</span><b>₹${fmt0(o.amt)}/-</b></div>`
+            )
+            .join("") +
+          `<div class="of-line"><span>${mainLabel}</span><b>₹${fmt0(main)}/-</b></div>`
+        : `<div class="of-amt">₹${fmt0(main)}/-</div>` +
+          (offYearly ? `<div class="of-per">Payable Per Year</div>` : "");
       const div = document.createElement("div");
       div.className = "offering-fee";
-      const perYear = isYearly(key) ? `<div class="of-per">Payable Per Year</div>` : "";
       div.innerHTML = `
         <div class="of-left">
           <div class="of-label">Professional Fee</div>
           <div class="of-note">Exclusive of ${gst}% GST</div>
         </div>
-        <div class="of-right">
-          <div class="of-amt">₹${fmt0(offeringAmount(key))}/-</div>
-          ${perYear}
-        </div>`;
+        <div class="of-right">${right}</div>`;
       anchor.after(div);
     }
     // every offering carries its own "+ Add Item" button (screen only)
