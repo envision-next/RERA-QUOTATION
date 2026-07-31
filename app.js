@@ -1384,8 +1384,19 @@ function offeringAmount(key) {
     t = card ? parseAmt(card.querySelector(".i-amt").value) : 0;
   }
   document
-    .querySelectorAll(`.svc-card.custom-card[data-parent="${key}"] .i-amt`)
+    .querySelectorAll(`.svc-card.custom-card[data-parent="${key}"]:not(.gov-card) .i-amt`)
     .forEach((i) => (t += parseAmt(i.value)));
+  return t;
+}
+
+/* government fees of one offering (or all, when key is omitted) —
+   kept apart from the professional fee: no GST, no grand total */
+function govTotal(key) {
+  let t = 0;
+  const sel = key
+    ? `.svc-card.gov-card[data-parent="${key}"] .i-amt`
+    : `.svc-card.gov-card .i-amt`;
+  document.querySelectorAll(sel).forEach((i) => (t += parseAmt(i.value)));
   return t;
 }
 
@@ -1449,7 +1460,7 @@ function rebuildOfferingFees() {
           ? parseAmt(serviceCard(key).querySelector(".i-amt").value)
           : 0;
       const odd = [];
-      document.querySelectorAll(`.svc-card.custom-card[data-parent="${key}"]`).forEach((c) => {
+      document.querySelectorAll(`.svc-card.custom-card[data-parent="${key}"]:not(.gov-card)`).forEach((c) => {
         const amt = parseAmt(c.querySelector(".i-amt")?.value);
         const yr = c.dataset.yearly === "1";
         if (yr === offYearly) main += amt;
@@ -1476,7 +1487,25 @@ function rebuildOfferingFees() {
         <div class="of-right">${right}</div>`;
       anchor.after(div);
     }
-    // every offering carries its own "+ Add Item" button (screen only)
+    // government fees strip: GST-free, outside the professional totals
+    const gv = govTotal(key);
+    if (gv > 0) {
+      const gdiv = document.createElement("div");
+      gdiv.className = "offering-fee gov-fee";
+      gdiv.innerHTML = `
+        <div class="of-left">
+          <div class="of-label">Government Fees</div>
+          <div class="of-note">GST not applicable</div>
+        </div>
+        <div class="of-right"><div class="of-amt">₹${fmt0(gv)}/-</div></div>`;
+      anchor.after(gdiv);
+    }
+    // every offering carries its own add buttons (screen only)
+    const addGov = document.createElement("button");
+    addGov.className = "btn btn-add no-print offering-add";
+    addGov.innerHTML = ICON_PLUS + "Add Government Fees";
+    addGov.addEventListener("click", () => addCustomCard({ gov: true }, key));
+    anchor.after(addGov);
     const add = document.createElement("button");
     add.className = "btn btn-add no-print offering-add";
     add.innerHTML = ICON_PLUS + "Add Item";
@@ -1598,23 +1627,26 @@ function addCustomCard(item = {}, parentKey) {
   pushUndo();
   const it = { desc: "", sub: "", amt: 0, ...item };
   const parent = parentKey || it.parent || null;
+  const gov = !!it.gov; // government fees: no GST, outside the professional totals
   const yearly = it.yearly !== undefined ? !!it.yearly : isYearly(parent);
   const card = document.createElement("div");
-  card.className = "svc-card custom-card";
+  card.className = "svc-card custom-card" + (gov ? " gov-card" : "");
   card.dataset.uid = String(++CARD_UID);
   if (parent) card.dataset.parent = parent;
+  if (gov) card.dataset.gov = "1";
   card.dataset.yearly = yearly ? "1" : "0";
+  const descVal = it.desc || (gov ? "Government Fees" : "");
   card.innerHTML = `
     <div class="card-head">
       <button class="drag-handle no-print" title="Drag to reorder">${ICON_GRIP}</button>
-      <input type="text" class="i-desc" placeholder="ITEM / SERVICE NAME" value="${escapeAttr(it.desc)}">
-      <button class="yr-toggle no-print" title="Billed per year or one-time">${yearly ? "Per Year" : "One-time"}</button>
+      <input type="text" class="i-desc" placeholder="ITEM / SERVICE NAME" value="${escapeAttr(descVal)}">
+      ${gov ? "" : `<button class="yr-toggle no-print" title="Billed per year or one-time">${yearly ? "Per Year" : "One-time"}</button>`}
       <div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(it.amt)}"><span>/-</span></div>
       <button class="row-del no-print" title="Remove item">${ICON_X}</button>
     </div>
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Details (click to edit)">${scopeListHtml(it.sub) || "<li><br></li>"}</ol>
   `;
-  card.querySelector(".yr-toggle").addEventListener("click", () => {
+  card.querySelector(".yr-toggle")?.addEventListener("click", () => {
     pushUndo();
     const yr = card.dataset.yearly !== "1";
     card.dataset.yearly = yr ? "1" : "0";
@@ -1685,6 +1717,7 @@ function readItems() {
         amt: parseAmt(card.querySelector(".i-amt").value),
         parent: card.dataset.parent || null,
         yearly: card.dataset.yearly === "1",
+        gov: card.dataset.gov === "1",
       });
     }
   });
@@ -1702,6 +1735,7 @@ function recalc() {
   let oneTime = 0;
   let yearly = 0;
   allCards().forEach((card) => {
+    if (card.classList.contains("gov-card")) return; // govt fees stay apart
     const inp = card.querySelector(".i-amt");   // "included" cards carry no pill
     if (!inp) return;
     const v = parseAmt(inp.value);
@@ -1713,6 +1747,7 @@ function recalc() {
     if (yr) yearly += v;
     else oneTime += v;
   });
+  const gov = govTotal();
   const svcCount = selectedKeys().length;
 
   const discountRate = parseFloat($("discountRate").value) || 0;
@@ -1737,6 +1772,10 @@ function recalc() {
       `<div class="fee-line fee-line-total"><span>Total</span><b>₹${fmt0(oneTimeFee + yearlyFee)}/-</b></div>`;
   } else {
     feeEl.textContent = "₹" + fmt0(primaryFee) + "/-";
+  }
+  // government fees total: outside the grand total, GST-free
+  if (gov > 0) {
+    feeEl.innerHTML += `<div class="fee-line fee-line-gov"><span>Government Fees (GST not applicable)</span><b>₹${fmt0(gov)}/-</b></div>`;
   }
   $("feeGstPct").textContent = taxRate;
   $("feeDiscNote").textContent = discountRate > 0 ? ` · Includes ${discountRate}% discount` : "";
@@ -1911,8 +1950,13 @@ function quoteAnalytics(record) {
     subtotal += amount;
     lines.push({ name, amount });
   });
+  let govFees = 0;
   (record.customItems || []).forEach((it) => {
     const amount = it.amt || 0;
+    if (it.gov) {
+      govFees += amount; // GST-free, outside the professional totals
+      return;
+    }
     subtotal += amount;
     lines.push({ name: it.desc || "Custom item", amount });
   });
@@ -1933,6 +1977,7 @@ function quoteAnalytics(record) {
     taxRate,
     taxAmt,
     grandTotal,
+    govFees,
   };
 }
 
