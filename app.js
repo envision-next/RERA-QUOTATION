@@ -314,6 +314,21 @@ const CATALOGUE = {
     ],
     amount: 30000,
   },
+  removal_of_abeyance: {
+    label: "Removal from Abeyance",
+    subs: [
+      "Responding to the MahaRERA Notice: Preparing and submitting an appropriate reply to the notice received from MahaRERA, addressing all concerns raised.",
+      "Representation in Virtual Meetings: Attending any online meetings or hearings with MahaRERA officials on behalf of the client to present their case or provide clarifications.",
+      "Providing Guidance on RERA Rules and Regulations: Offering expert advice and explanations on the relevant Real Estate (Regulation and Development) Act, 2016 provisions applicable to the issue at hand.",
+      "Liaising with MahaRERA Authorities: Acting as a point of Contact to communicate and coordinate with MahaRERA officials for efficient resolution of the matter.",
+      "Drafting Necessary Applications, Undertakings, and Declarations: Preparing and submitting all required legal documents, such as applications for compliance, undertakings, or declarations, to address the notice or related compliance requirements.",
+    ],
+    docs: [
+      "Copy of the abeyance notice.",
+      "Pending compliance documents.",
+    ],
+    amount: 35000,
+  },
   pending_compliances: {
     label: "Pending Compliances",
     subs: [
@@ -472,7 +487,7 @@ const GROUPS = [
   {
     title: "Individual Services",
     keys: [
-      "correction", "pending_compliances",
+      "correction", "removal_of_abeyance", "pending_compliances",
       "change_of_promoter", "withdrawal_of_old_correction",
     ],
   },
@@ -488,6 +503,7 @@ const SHORT_TITLES = {
   project_registration: "Project Registration",
   registration_lumpsum: "Registration - Lumpsum",
   correction: "Project Correction",
+  removal_of_abeyance: "Removal from Abeyance",
   pending_compliances: "Pending Compliances",
   change_of_promoter: "Change of Promoter",
   withdrawal_of_old_correction: "Withdrawal of Correction",
