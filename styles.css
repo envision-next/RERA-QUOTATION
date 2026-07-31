@@ -971,7 +971,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 /* ===== Responsive ===== */
 
 /* Stack the two-column workspace; controls on top, sheet below */
-@media (max-width: 1000px) {
+@media screen and (max-width: 1000px) {
   .workspace { grid-template-columns: 1fr; gap: 18px; padding: 18px; }
   .side-panel {
     position: static;
@@ -983,7 +983,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 }
 
 /* Tablets & large phones */
-@media (max-width: 720px) {
+@media screen and (max-width: 720px) {
   .appbar { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
   .app-subtitle { display: none; }
   .appbar-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
@@ -1027,7 +1027,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 }
 
 /* Small phones */
-@media (max-width: 460px) {
+@media screen and (max-width: 460px) {
   .app-title { font-size: 15px; }
   .brand-mark { width: 30px; height: 30px; font-size: 12px; }
   .appbar-actions .btn { font-size: 12px; padding: 8px 9px; }
@@ -1060,11 +1060,13 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   .sheet-area { display: block; }
   #pagesContainer { display: block; }
 
+  html, body { margin: 0; padding: 0; }
   /* WYSIWYG: every on-screen sheet IS one A4 page — identical size,
-     padding and flex layout as the preview, so nothing moves */
+     padding and flex layout as the preview, so nothing moves.
+     A hair under 297mm so rounding can never spill a blank page. */
   .sheet {
     width: 210mm;
-    height: 297mm;
+    height: 296.6mm;
     min-height: 0;
     max-width: none;
     margin: 0;
@@ -1605,7 +1607,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .prop-footer p { margin: 0; font-size: 10.5px; color: #8a8a8a; text-align: right; }
 
 /* --- responsive tweaks for the proposal --- */
-@media (max-width: 720px) {
+@media screen and (max-width: 720px) {
   .prop-titlerow { flex-direction: column; }
   .prop-meta { text-align: left; }
   .prop-title { font-size: 28px; }
