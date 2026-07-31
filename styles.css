@@ -1139,6 +1139,9 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 
 /* the real RERA Easy logo (extracted from 5.pdf) */
 .logo-img { height: 130px; width: auto; display: block; flex: none; }
+/* bigger artwork WITHOUT growing the letterhead band: the extra
+   30px is absorbed by negative margins */
+.prop-topbar .logo-img { margin-top: -15px; margin-bottom: -15px; }
 .logo-sm { height: 56px; }
 
 /* wordmark goes black + gold on the proposal */
