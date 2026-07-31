@@ -2381,6 +2381,13 @@ function repaginate() {
   const first = $("quotationSheet");
   const focusCard =
     (document.activeElement && document.activeElement.closest && document.activeElement.closest(".svc-card")) || null;
+  // typing in a card can change page assignments; moving the element
+  // blurs it, so remember who had focus (and the caret) to restore
+  const focusEl = document.activeElement;
+  const focusSel =
+    focusEl && focusEl.tagName === "INPUT" && focusEl.type === "text"
+      ? [focusEl.selectionStart, focusEl.selectionEnd]
+      : null;
 
   // merge continuations back into their cards, then re-split fresh —
   // skipped while a card is being edited, so the caret survives
@@ -2448,12 +2455,13 @@ function repaginate() {
       used += h;
       continue;
     }
-    // closing blocks (fee strips, grand-total box, sign-off) never sit
+    // closing blocks (per-offering fee strips, sign-off) never sit
     // alone: squeeze if close, else carry the previous block along so
-    // they open the next page together
+    // they open the next page together. The grand fee-box flows
+    // normally — the documents annexure always follows it, so it can
+    // open a page without stranding anything.
     if (
       b.classList.contains("offering-fee") ||
-      b.classList.contains("fee-box") ||
       b.classList.contains("prop-signoff")
     ) {
       if (h - mb <= budget - used + 60) {
@@ -2568,6 +2576,14 @@ function repaginate() {
     const rest = [...s.children].filter((el) => !isFurniture(el));
     if (!rest.length) s.remove();
     else break;
+  }
+
+  // restore focus + caret if the re-pack moved the focused element
+  if (focusEl && focusEl.isConnected && document.activeElement !== focusEl) {
+    focusEl.focus({ preventScroll: true });
+    if (focusSel && focusEl.setSelectionRange) {
+      try { focusEl.setSelectionRange(focusSel[0], focusSel[1]); } catch (e) {}
+    }
   }
 
   // adaptive sign-off rule: no line when the sign-off opens a page
