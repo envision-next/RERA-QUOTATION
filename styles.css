@@ -1351,6 +1351,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 /* --- Professional Fee box --- */
 .fee-box {
   margin-top: 7mm;
+  margin-bottom: 18px; /* never glued to the footer */
   background: var(--cream);
   border-left: 4px solid var(--gold);
   border-radius: 0 8px 8px 0;
@@ -1364,6 +1365,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 /* per-offering fee strip: same look as the fee box, slimmer */
 .offering-fee {
   margin-top: 14px;
+  margin-bottom: 18px; /* never glued to the footer */
   background: var(--cream);
   border-left: 4px solid var(--gold);
   border-radius: 0 8px 8px 0;
