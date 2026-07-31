@@ -337,7 +337,10 @@ input[readonly] { opacity: .72; cursor: default; }
 .field { display: block; margin-bottom: 12px; }
 .field:last-child { margin-bottom: 0; }
 .field-row { display: flex; gap: 10px; }
-.field-row .field { flex: 1; }
+/* min-width: 0 lets date inputs shrink instead of poking out of the card */
+.field-row .field { flex: 1; min-width: 0; }
+.field-row .field input,
+.field-row .field select { min-width: 0; max-width: 100%; }
 
 .field-label {
   display: block;
