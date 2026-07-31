@@ -1095,7 +1095,10 @@ function bindServiceAmt(card, key) {
     recalc();
   });
   amt.addEventListener("focus", () => (amt.value = parseAmt(amt.value) || ""));
-  amt.addEventListener("blur", () => (amt.value = fmt0(parseAmt(amt.value))));
+  amt.addEventListener("blur", () => {
+    amt.value = fmt0(parseAmt(amt.value));
+    setTimeout(recalc, 0); // run the repagination deferred while typing
+  });
 }
 
 function addServiceCard(key, amount, subText, customAmt, included) {
@@ -1297,6 +1300,7 @@ function bindSectionAmt(card, key) {
     // so the offering total stays put (registration & individual only)
     if (!isYearly(key))
       rebalanceSections(card, key, parseAmt(amt.dataset.prev || "0"), parseAmt(amt.value));
+    setTimeout(recalc, 0); // run the repagination deferred while typing
   });
 }
 
@@ -1436,7 +1440,52 @@ function rebuildIndex() {
 /* per-offering fee strip — when more than one thing is billed, each
    offering's charge prints at the end of its own section, before the
    next offering begins (same style as the Professional Fee box) */
+/* right side of a professional fee strip (split by billing type) */
+function profRightHtml(key, gst) {
+  const offYearly = isYearly(key);
+  let main = CATALOGUE[key].sections
+    ? serviceTotal(key)
+    : serviceCard(key)
+      ? parseAmt(serviceCard(key).querySelector(".i-amt").value)
+      : 0;
+  const odd = [];
+  document.querySelectorAll(`.svc-card.custom-card[data-parent="${key}"]:not(.gov-card)`).forEach((c) => {
+    const amt = parseAmt(c.querySelector(".i-amt")?.value);
+    const yr = c.dataset.yearly === "1";
+    if (yr === offYearly) main += amt;
+    else odd.push({ name: c.querySelector(".i-desc")?.value.trim() || "Custom item", amt, yr });
+  });
+  const mainLabel = offYearly ? "Package (Per Year)" : "One-time";
+  return odd.length
+    ? odd
+        .map(
+          (o) =>
+            `<div class="of-line"><span>${escapeHtml(o.name)}${o.yr ? " (Per Year)" : ""}</span><b>₹${fmt0(o.amt)}/-</b></div>`
+        )
+        .join("") +
+      `<div class="of-line"><span>${mainLabel}</span><b>₹${fmt0(main)}/-</b></div>`
+    : `<div class="of-amt">₹${fmt0(main)}/-</div>` +
+      (offYearly ? `<div class="of-per">*Payable per Year</div>` : "");
+}
+
 function rebuildOfferingFees() {
+  const gst0 = parseFloat($("taxRate").value) || 0;
+  // while an input inside a card has focus, only refresh amounts in
+  // place — removing/re-adding strips would make the card jump around
+  // under the user's cursor; the full rebuild runs on blur
+  const typing =
+    document.activeElement && document.activeElement.closest && document.activeElement.closest(".svc-card");
+  if (typing) {
+    document.querySelectorAll(".offering-fee:not(.gov-fee)").forEach((f) => {
+      const right = f.querySelector(".of-right");
+      if (f.dataset.key && right) right.innerHTML = profRightHtml(f.dataset.key, gst0);
+    });
+    document.querySelectorAll(".offering-fee.gov-fee").forEach((f) => {
+      const right = f.querySelector(".of-right");
+      if (f.dataset.key && right) right.innerHTML = `<div class="of-amt">₹${fmt0(govTotal(f.dataset.key))}/-</div>`;
+    });
+    return;
+  }
   document.querySelectorAll(".offering-fee, .offering-add").forEach((el) => el.remove());
   const keys = selectedKeys();
   const gst = parseFloat($("taxRate").value) || 0;
@@ -1451,40 +1500,15 @@ function rebuildOfferingFees() {
       anchor = anchor.nextElementSibling;
 
     if (showFees) {
-      // items billed differently from the offering itself get their
-      // own labelled line; the rest merges into the offering's amount
-      const offYearly = isYearly(key);
-      let main = CATALOGUE[key].sections
-        ? serviceTotal(key)
-        : serviceCard(key)
-          ? parseAmt(serviceCard(key).querySelector(".i-amt").value)
-          : 0;
-      const odd = [];
-      document.querySelectorAll(`.svc-card.custom-card[data-parent="${key}"]:not(.gov-card)`).forEach((c) => {
-        const amt = parseAmt(c.querySelector(".i-amt")?.value);
-        const yr = c.dataset.yearly === "1";
-        if (yr === offYearly) main += amt;
-        else odd.push({ name: c.querySelector(".i-desc")?.value.trim() || "Custom item", amt, yr });
-      });
-      const mainLabel = offYearly ? "Package (Per Year)" : "One-time";
-      const right = odd.length
-        ? odd
-            .map(
-              (o) =>
-                `<div class="of-line"><span>${escapeHtml(o.name)}${o.yr ? " (Per Year)" : ""}</span><b>₹${fmt0(o.amt)}/-</b></div>`
-            )
-            .join("") +
-          `<div class="of-line"><span>${mainLabel}</span><b>₹${fmt0(main)}/-</b></div>`
-        : `<div class="of-amt">₹${fmt0(main)}/-</div>` +
-          (offYearly ? `<div class="of-per">*Payable per Year</div>` : "");
       const div = document.createElement("div");
       div.className = "offering-fee";
+      div.dataset.key = key;
       div.innerHTML = `
         <div class="of-left">
           <div class="of-label">Professional Fee</div>
           <div class="of-note">Exclusive of ${gst}% GST</div>
         </div>
-        <div class="of-right">${right}</div>`;
+        <div class="of-right">${profRightHtml(key, gst)}</div>`;
       anchor.after(div);
     }
     // government fees strip: GST-free, outside the professional totals
@@ -1492,6 +1516,7 @@ function rebuildOfferingFees() {
     if (gv > 0) {
       const gdiv = document.createElement("div");
       gdiv.className = "offering-fee gov-fee";
+      gdiv.dataset.key = key;
       gdiv.innerHTML = `
         <div class="of-left">
           <div class="of-label">Government Fees</div>
@@ -1662,7 +1687,11 @@ function addCustomCard(item = {}, parentKey) {
     card.remove();
     recalc();
   });
-  card.querySelectorAll("input").forEach((inp) => inp.addEventListener("input", recalc));
+  card.querySelectorAll("input").forEach((inp) => {
+    inp.addEventListener("input", recalc);
+    // the full rebuild + repagination deferred while typing runs here
+    inp.addEventListener("blur", () => setTimeout(recalc, 0));
+  });
 
   const amt = card.querySelector(".i-amt");
   amt.addEventListener("focus", () => (amt.value = parseAmt(amt.value) || ""));
@@ -1813,7 +1842,11 @@ function recalc() {
   rebuildOfferingFees();
   rebuildIndex();
   syncProposal();
-  schedulePaginate();
+  // no page re-pack while typing inside a card — the card would jump
+  // under the cursor; the blur handlers run a full recalc afterwards
+  const typing =
+    document.activeElement && document.activeElement.closest && document.activeElement.closest(".svc-card");
+  if (!typing) schedulePaginate();
 }
 
 /* title, kicker & callout follow the selection + client details */
