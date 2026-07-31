@@ -295,82 +295,24 @@ const CATALOGUE = {
     ],
     amount: 650000,
   },
-  extension: {
-    label: "Extension of Project Completion Date u/s 7(3)",
+  correction: {
+    label: "Project Correction u/s 14(2)",
     subs: [
-      "Project Extension under Section 7(3): Extending the project under Section 7(3) regulations involves prolonging the project's duration in accordance with legal provisions.",
+      "Project Correction under Section 14(2): Correction of the project under Section 14(2) regulations involves correcting the project's details in accordance with legal provisions.",
       "Consultation regarding RERA Rules and Regulations: Providing advisory services on compliance with the rules and regulations set forth by the Real Estate Regulatory Authority (RERA).",
-      "Uploading of all the relevant documents for Project Extension: Ensuring that all pertinent documents required for extending the project are appropriately uploaded and submitted as per the prescribed guidelines.",
-      "Drafting of a detailed consent letter: Creating a comprehensive consent letter outlining the details of the extension process to the allottees, adhering to regulatory specifications.",
+      "Uploading of all the relevant documents for Project Correction: Ensuring that all pertinent documents required for correcting the project are appropriately uploaded and submitted as per the prescribed guidelines.",
+      "Drafting of a detailed consent letter for correction: Creating a comprehensive consent letter outlining the details of the correction process to the allottees, adhering to regulatory specifications.",
       "Scrutiny Assistance: Providing support and guidance during the scrutiny process to ensure compliance and smooth execution of all regulatory obligations.",
     ],
     docs: [
-      "Index II or Date of Registration of Sold Units.",
-      "Project Extension Date.",
-      "51% consents of the allottees for extension.",
-      "Form 1 (Architect's Certificate), Form 2 (Engineer's Certificate) & Form 3 (CA's Certificate) for all the pending quarters.",
-      "Form 2A (Quality Assurance Certificate by Engineer) & Form 5 (Annual Audit Report of Statutory CA) for all the pending FY.",
-      "Reason for the delay in the project.",
-      "Case Details of the project.",
+      "New Approved Plans and CC.",
+      "67% consents of the allottees for correction under section 14(2).",
       "RERA Carpet Area Statement.",
-    ],
-    amount: 80000,
-  },
-  correction: {
-    label: "Project Correction / Change of Details",
-    subs: [
-      "Correction Application: Drafting the correction application with supporting justification.",
-      "Portal Updation: Updating the project details on the MahaRERA portal.",
-      "Follow-up: Liaison with the authority till approval of the correction.",
-    ],
-    docs: [
-      "Details of the proposed changes.",
-      "Supporting certificates for the change.",
-      "Board resolution / consent letter.",
+      "Index II or Date of Registration of Sold Units.",
+      "Form 1 (Architect's Certificate), Form 2 (Engineer's Certificate) & Form 3 (CA's Certificate) for the quarter / as on OC date or Sanctioned Plan date (as applicable).",
+      "Form 2A (Quality Assurance Certificate by Engineer) & Form 5 (Annual Audit Report of Statutory CA) for the FY.",
     ],
     amount: 30000,
-  },
-  profile_migration: {
-    label: "Profile Migration",
-    subs: [
-      "Profile Mapping: Mapping of the existing promoter profile and registered projects.",
-      "Migration Filing: Migration filing on the new MahaRERA system.",
-      "Verification: Verification of the migrated data for completeness.",
-    ],
-    docs: [
-      "Existing MahaRERA login credentials.",
-      "Promoter KYC documents.",
-      "List of registered projects.",
-    ],
-    amount: 25000,
-  },
-  project_closure: {
-    label: "Project Closure",
-    subs: [
-      "Closure Application: Drafting and filing the project closure application.",
-      "Occupancy Certificate: Uploading the OC and completion documents.",
-      "Final Reconciliation: Final QPR reconciliation & Form 4 filing.",
-    ],
-    docs: [
-      "Occupancy Certificate.",
-      "Form 4 (Architect's Certificate).",
-      "Final CA certificate.",
-      "Sold / unsold inventory statement.",
-    ],
-    amount: 60000,
-  },
-  removal_of_abeyance: {
-    label: "Removal of Abeyance",
-    subs: [
-      "Reply Drafting: Drafting the reply to the abeyance notice.",
-      "Compliance Submission: Submission of all pending compliances.",
-      "Follow-up: Continuous follow-up till the abeyance is lifted.",
-    ],
-    docs: [
-      "Copy of the abeyance notice.",
-      "Pending compliance documents.",
-    ],
-    amount: 35000,
   },
   pending_compliances: {
     label: "Pending Compliances",
@@ -385,21 +327,6 @@ const CATALOGUE = {
       "Form 5 audit report.",
     ],
     amount: 40000,
-  },
-  maharera_profile_updation: {
-    label: "MahaRERA Profile Updation",
-    subs: [
-      "Disclosure of Sold/Unsold Inventory: Thorough drafting and meticulous uploading of the disclosure document showcasing the status of sold and unsold inventory, ensuring accuracy and compliance.",
-      "Format D Drafting and Uploading: Proficient drafting and systematic uploading of Format D.",
-      "CERSAI Report Submission: Facilitating the submission and generation of the CERSAI report, ensuring completeness and adherence to regulatory standards.",
-      "Drafted Formats for Form 2A: Preparation and provision of meticulously drafted formats required for Form 2A.",
-      "MahaRERA Profile Update: Complete and accurate updating of the MahaRERA profile.",
-    ],
-    docs: [
-      "Updated promoter details.",
-      "Certificates / documents to be uploaded.",
-    ],
-    amount: 15000,
   },
   change_of_promoter: {
     label: "Change of Promoter (Section 15)",
@@ -545,9 +472,8 @@ const GROUPS = [
   {
     title: "Individual Services",
     keys: [
-      "extension", "correction", "profile_migration",
-      "project_closure", "removal_of_abeyance", "pending_compliances",
-      "maharera_profile_updation", "change_of_promoter", "withdrawal_of_old_correction",
+      "correction", "pending_compliances",
+      "change_of_promoter", "withdrawal_of_old_correction",
     ],
   },
 ];
@@ -561,13 +487,8 @@ const ORDER = GROUPS.flatMap((g) => g.keys);
 const SHORT_TITLES = {
   project_registration: "Project Registration",
   registration_lumpsum: "Registration - Lumpsum",
-  extension: "Project Extension",
   correction: "Project Correction",
-  profile_migration: "Profile Migration",
-  project_closure: "Project Closure",
-  removal_of_abeyance: "Removal of Abeyance",
   pending_compliances: "Pending Compliances",
-  maharera_profile_updation: "Profile Updation",
   change_of_promoter: "Change of Promoter",
   withdrawal_of_old_correction: "Withdrawal of Correction",
   package_a: "Package A",
@@ -2615,7 +2536,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (new URLSearchParams(location.search).has("demo")) {
     selectService("project_registration");
     selectService("package_a");
-    selectService("extension", 80000);
+    selectService("correction", 30000);
   }
   $("taxRate").value = RATES.gst ?? 18;
   $("terms").value = DEFAULT_TERMS;
