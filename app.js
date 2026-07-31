@@ -56,6 +56,7 @@ const ICON_ALERT = SVG + '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 
 const ICON_LOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const ICON_UNLOCK = SVG + '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
 const ICON_GRIP = '<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
+const ICON_PLUS = SVG + '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
 
 const Store = {
   remote() {
@@ -842,22 +843,49 @@ function deselectService(key) {
   offeringHead(key)?.remove();
   delete REMOVED_SECS[key];
   document.querySelector(`.restore-bar[data-key="${key}"]`)?.remove();
-  // a sectioned offering owns several cards — remove them all
-  document.querySelectorAll(`.svc-card[data-key="${key}"]`).forEach((card) => {
-    document
-      .querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"]`)
-      .forEach((c) => c.remove());
-    card.remove();
-  });
+  // a sectioned offering owns several cards — remove them all, along
+  // with any custom items added inside this offering
+  document
+    .querySelectorAll(`.svc-card[data-key="${key}"], .svc-card.custom-card[data-parent="${key}"]`)
+    .forEach((card) => {
+      document
+        .querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"]`)
+        .forEach((c) => c.remove());
+      card.remove();
+    });
   rebuildDocs();
   recalc();
 }
 
-/* ---------- drag & drop: reorder sections within an offering ---------- */
+/* ---------- offering groups: sections + their custom items ---------- */
+
+/* every card belongs to a group: an offering's sections carry its key,
+   custom items carry the offering in data-parent, and standalone
+   custom items form their own group */
+function cardGroup(c) {
+  return c.dataset.key || c.dataset.parent || (c.classList.contains("custom-card") ? "__custom" : "");
+}
+
+/* last element of an offering's block (sections, continuations and
+   custom items), in document order */
+function groupLast(key) {
+  const els = [
+    ...document.querySelectorAll(
+      `.svc-card:not(.svc-cont)[data-key="${key}"], .svc-card.custom-card[data-parent="${key}"]`
+    ),
+  ];
+  if (!els.length) return null;
+  let last = els[els.length - 1];
+  while (last.nextElementSibling && last.nextElementSibling.classList.contains("svc-cont"))
+    last = last.nextElementSibling;
+  return last;
+}
+
+/* ---------- drag & drop: reorder cards within their group ---------- */
 
 let DRAG_CARD = null;
 
-function wireSectionDrag(card, key) {
+function wireSectionDrag(card) {
   const handle = card.querySelector(".drag-handle");
   // the card is only draggable while the grip is held, so text
   // selection and contenteditable keep working everywhere else
@@ -878,7 +906,7 @@ function wireSectionDrag(card, key) {
       .forEach((c) => c.classList.remove("drop-above", "drop-below"));
   });
   card.addEventListener("dragover", (e) => {
-    if (!DRAG_CARD || DRAG_CARD === card || DRAG_CARD.dataset.key !== card.dataset.key) return;
+    if (!DRAG_CARD || DRAG_CARD === card || cardGroup(DRAG_CARD) !== cardGroup(card)) return;
     e.preventDefault();
     const r = card.getBoundingClientRect();
     const above = e.clientY < r.top + r.height / 2;
@@ -887,14 +915,15 @@ function wireSectionDrag(card, key) {
   });
   card.addEventListener("dragleave", () => card.classList.remove("drop-above", "drop-below"));
   card.addEventListener("drop", (e) => {
-    if (!DRAG_CARD || DRAG_CARD === card || DRAG_CARD.dataset.key !== card.dataset.key) return;
+    if (!DRAG_CARD || DRAG_CARD === card || cardGroup(DRAG_CARD) !== cardGroup(card)) return;
     e.preventDefault();
     const above = card.classList.contains("drop-above");
     card.classList.remove("drop-above", "drop-below");
     pushUndo();
     if (above) card.before(DRAG_CARD);
     else card.after(DRAG_CARD);
-    updateRestoreBar(key);
+    const grp = cardGroup(card);
+    if (grp && grp !== "__custom") updateRestoreBar(grp);
     rebuildDocs();
     recalc();
   });
@@ -955,7 +984,7 @@ function updateRestoreBar(key) {
   bar.querySelectorAll(".rb-btn").forEach((btn) =>
     btn.addEventListener("click", () => restoreSection(key, parseInt(btn.dataset.i, 10)))
   );
-  cards[cards.length - 1].after(bar);
+  (groupLast(key) || cards[cards.length - 1]).after(bar);
 }
 
 function restoreSection(key, i) {
@@ -1143,7 +1172,7 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afte
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Scope items (click to edit)">${scopeListHtml(sub)}</ol>
   `;
   card.querySelector(".row-del").addEventListener("click", () => removeSectionCard(card, key));
-  wireSectionDrag(card, key);
+  wireSectionDrag(card);
   bindSectionAmt(card, key);
 
   if (afterEl) afterEl.after(card);
@@ -1167,11 +1196,19 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afte
   return card;
 }
 
-/* index: numbered list of the selected offerings with their fees */
+/* index: numbered list of the selected offerings with their fees.
+   An offering's amount includes its own custom items. */
 function offeringAmount(key) {
-  if (CATALOGUE[key].sections) return serviceTotal(key);
-  const card = serviceCard(key);
-  return card ? parseAmt(card.querySelector(".i-amt").value) : 0;
+  let t;
+  if (CATALOGUE[key].sections) t = serviceTotal(key);
+  else {
+    const card = serviceCard(key);
+    t = card ? parseAmt(card.querySelector(".i-amt").value) : 0;
+  }
+  document
+    .querySelectorAll(`.svc-card.custom-card[data-parent="${key}"] .i-amt`)
+    .forEach((i) => (t += parseAmt(i.value)));
+  return t;
 }
 
 function rebuildIndex() {
@@ -1187,10 +1224,12 @@ function rebuildIndex() {
     amt: offeringAmount(k),
     yearly: isYearly(k),
   }));
-  document.querySelectorAll(".svc-card.custom-card").forEach((c) => {
+  // items inside an offering roll into that offering's amount; only
+  // standalone custom items get their own index row
+  document.querySelectorAll(".svc-card.custom-card:not([data-parent])").forEach((c) => {
     const desc = c.querySelector(".i-desc")?.value.trim();
     const amt = parseAmt(c.querySelector(".i-amt")?.value);
-    if (desc || amt) lines.push({ name: desc || "Custom item", amt, yearly: false });
+    if (desc || amt) lines.push({ name: desc || "Custom item", amt, yearly: c.dataset.yearly === "1" });
   });
 
   tbl.innerHTML = lines
@@ -1209,37 +1248,44 @@ function rebuildIndex() {
    offering's charge prints at the end of its own section, before the
    next offering begins (same style as the Professional Fee box) */
 function rebuildOfferingFees() {
-  document.querySelectorAll(".offering-fee").forEach((el) => el.remove());
+  document.querySelectorAll(".offering-fee, .offering-add").forEach((el) => el.remove());
   const keys = selectedKeys();
-  // per-offering strips only make sense with 2+ offerings — a custom
-  // item alone must not trigger them
-  if (keys.length < 2) return;
   const gst = parseFloat($("taxRate").value) || 0;
+  // per-offering fee strips only make sense with 2+ offerings — a
+  // custom item alone must not trigger them
+  const showFees = keys.length >= 2;
   keys.forEach((key) => {
-    const cards = [...document.querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"]`)];
-    if (!cards.length) return;
-    const uids = new Set(cards.map((c) => c.dataset.uid));
-    let last = cards[cards.length - 1];
-    while (
-      last.nextElementSibling &&
-      last.nextElementSibling.classList.contains("svc-cont") &&
-      uids.has(last.nextElementSibling.dataset.contFor)
-    )
-      last = last.nextElementSibling;
-    const div = document.createElement("div");
-    div.className = "offering-fee";
-    const perYear = isYearly(key) ? `<div class="of-per">Payable Per Year</div>` : "";
-    div.innerHTML = `
-      <div class="of-left">
-        <div class="of-label">Professional Fee</div>
-        <div class="of-note">Exclusive of ${gst}% GST</div>
-      </div>
-      <div class="of-right">
-        <div class="of-amt">₹${fmt0(offeringAmount(key))}/-</div>
-        ${perYear}
-      </div>`;
-    last.after(div);
+    let anchor = groupLast(key);
+    if (!anchor) return;
+    // trailing widgets sit after the restore bar, if one is showing
+    if (anchor.nextElementSibling && anchor.nextElementSibling.classList.contains("restore-bar"))
+      anchor = anchor.nextElementSibling;
+
+    if (showFees) {
+      const div = document.createElement("div");
+      div.className = "offering-fee";
+      const perYear = isYearly(key) ? `<div class="of-per">Payable Per Year</div>` : "";
+      div.innerHTML = `
+        <div class="of-left">
+          <div class="of-label">Professional Fee</div>
+          <div class="of-note">Exclusive of ${gst}% GST</div>
+        </div>
+        <div class="of-right">
+          <div class="of-amt">₹${fmt0(offeringAmount(key))}/-</div>
+          ${perYear}
+        </div>`;
+      anchor.after(div);
+    }
+    // every offering carries its own "+ Add Item" button (screen only)
+    const add = document.createElement("button");
+    add.className = "btn btn-add no-print offering-add";
+    add.innerHTML = ICON_PLUS + "Add Item";
+    add.addEventListener("click", () => addCustomCard({}, key));
+    anchor.after(add);
   });
+  // the global add button only serves quotes without any offering
+  const global = $("btnAddRow");
+  if (global) global.style.display = keys.length ? "none" : "";
 }
 
 /* total of a sectioned offering = sum of its priced pills */
@@ -1343,21 +1389,39 @@ function refreshOtherServices() {
   recalc();
 }
 
-/* free-form custom card (e.g. liaison visits, drafting extras) */
-function addCustomCard(item = {}) {
+/* free-form custom card (e.g. liaison visits, drafting extras).
+   With a parent offering it sits inside that offering's block and its
+   amount rolls into the offering's totals; the Per Year / One-time
+   toggle decides which grand-total bucket it lands in (packages
+   default to Per Year). */
+function addCustomCard(item = {}, parentKey) {
   pushUndo();
   const it = { desc: "", sub: "", amt: 0, ...item };
+  const parent = parentKey || it.parent || null;
+  const yearly = it.yearly !== undefined ? !!it.yearly : isYearly(parent);
   const card = document.createElement("div");
   card.className = "svc-card custom-card";
   card.dataset.uid = String(++CARD_UID);
+  if (parent) card.dataset.parent = parent;
+  card.dataset.yearly = yearly ? "1" : "0";
   card.innerHTML = `
     <div class="card-head">
+      <button class="drag-handle no-print" title="Drag to reorder">${ICON_GRIP}</button>
       <input type="text" class="i-desc" placeholder="ITEM / SERVICE NAME" value="${escapeAttr(it.desc)}">
+      <button class="yr-toggle no-print" title="Billed per year or one-time">${yearly ? "Per Year" : "One-time"}</button>
       <div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(it.amt)}"><span>/-</span></div>
       <button class="row-del no-print" title="Remove item">${ICON_X}</button>
     </div>
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Details (click to edit)">${scopeListHtml(it.sub) || "<li><br></li>"}</ol>
   `;
+  card.querySelector(".yr-toggle").addEventListener("click", () => {
+    pushUndo();
+    const yr = card.dataset.yearly !== "1";
+    card.dataset.yearly = yr ? "1" : "0";
+    card.querySelector(".yr-toggle").textContent = yr ? "Per Year" : "One-time";
+    recalc();
+  });
+  wireSectionDrag(card);
   card.querySelector(".row-del").addEventListener("click", () => {
     pushUndo();
     document
@@ -1372,10 +1436,15 @@ function addCustomCard(item = {}) {
   amt.addEventListener("focus", () => (amt.value = parseAmt(amt.value) || ""));
   amt.addEventListener("blur", () => (amt.value = fmt0(parseAmt(amt.value))));
 
-  // custom cards go after every existing card, wherever pagination put it
-  const all = [...document.querySelectorAll(".svc-card")];
-  if (all.length) all[all.length - 1].after(card);
-  else $("svcCards").appendChild(card);
+  // with a parent: inside that offering's block, after its last card;
+  // standalone: after every existing card, wherever pagination put it
+  const anchor = parent ? groupLast(parent) : null;
+  if (anchor) anchor.after(card);
+  else {
+    const all = [...document.querySelectorAll(".svc-card")];
+    if (all.length) all[all.length - 1].after(card);
+    else $("svcCards").appendChild(card);
+  }
   recalc();
   return card;
 }
@@ -1413,6 +1482,8 @@ function readItems() {
         desc: card.querySelector(".i-desc").value,
         sub: cardSubLines(card).join("\n"),
         amt: parseAmt(card.querySelector(".i-amt").value),
+        parent: card.dataset.parent || null,
+        yearly: card.dataset.yearly === "1",
       });
     }
   });
@@ -1433,7 +1504,12 @@ function recalc() {
     const inp = card.querySelector(".i-amt");   // "included" cards carry no pill
     if (!inp) return;
     const v = parseAmt(inp.value);
-    if (isYearly(card.dataset.key)) yearly += v;
+    // custom items follow their own Per Year toggle; sections follow
+    // their offering type
+    const yr = card.classList.contains("custom-card")
+      ? card.dataset.yearly === "1"
+      : isYearly(card.dataset.key);
+    if (yr) yearly += v;
     else oneTime += v;
   });
   const svcCount = selectedKeys().length;

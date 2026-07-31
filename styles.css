@@ -1379,6 +1379,24 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .offering-fee .of-right { text-align: right; }
 .offering-fee .of-per { font-size: 11px; font-weight: 700; color: #8a6d1a; margin-top: 2px; }
 
+/* per-item billing toggle: Per Year <-> One-time (screen only) */
+.yr-toggle {
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6b5310;
+  background: var(--gold-soft, #fdf3d7);
+  border: 1px solid #e6c76b;
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.yr-toggle:hover { background: #fbe9b0; }
+
+/* per-offering "+ Add Item" button spacing */
+.offering-add { margin-top: 10px; }
+
 /* drag & drop: reorder sections within an offering (screen only) */
 .drag-handle {
   background: transparent;
