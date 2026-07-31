@@ -1420,7 +1420,7 @@ function rebuildOfferingFees() {
             .join("") +
           `<div class="of-line"><span>${mainLabel}</span><b>₹${fmt0(main)}/-</b></div>`
         : `<div class="of-amt">₹${fmt0(main)}/-</div>` +
-          (offYearly ? `<div class="of-per">Payable Per Year</div>` : "");
+          (offYearly ? `<div class="of-per">*Payable per Year</div>` : "");
       const div = document.createElement("div");
       div.className = "offering-fee";
       div.innerHTML = `
