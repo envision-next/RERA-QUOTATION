@@ -1371,8 +1371,6 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-amount { font-size: 27px; font-weight: 800; color: #111; white-space: nowrap; }
 .fee-right { text-align: right; }
 .fee-yearly { font-size: 12px; font-weight: 700; color: var(--gold-deep, #a16207); margin-top: 4px; }
-.index-table .ix-total td { font-weight: 800; border-top: 1.5px solid #e6c76b; padding-top: 8px; }
-.index-table .ix-yearly td { color: var(--gold-deep, #a16207); }
 
 /* --- Annexure B : gold diamond bullets, two columns --- */
 .proposal .docs-block { margin-top: 0; }

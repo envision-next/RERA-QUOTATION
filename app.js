@@ -1076,17 +1076,8 @@ function rebuildIndex() {
     )
     .join("");
 
-  // grand total (one-time services) + yearly payable (packages), shown
-  // separately so the client sees each service charge and the totals
-  const oneTimeSum = lines.filter((l) => !l.yearly).reduce((s, l) => s + l.amt, 0);
-  const yearlySum = lines.filter((l) => l.yearly).reduce((s, l) => s + l.amt, 0);
-  let totals = "";
-  if (oneTimeSum > 0)
-    totals += `<tr class="ix-total"><td></td><td>Grand Total (one-time)</td><td class="ix-amt">₹ ${fmt0(oneTimeSum)}*</td></tr>`;
-  if (yearlySum > 0)
-    totals += `<tr class="ix-total ix-yearly"><td></td><td>Yearly Payable (Packages)</td><td class="ix-amt">₹ ${fmt0(yearlySum)}*</td></tr>`;
-  tbl.innerHTML += totals;
-
+  // no totals here — the grand total prints at the end of the document
+  // in the Professional Fee box, with the yearly payable under it
   $("indexBlock").classList.toggle("empty", lines.length < 2);
 }
 
