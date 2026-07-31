@@ -1242,8 +1242,46 @@ function bindSectionAmt(card, key) {
     if (panelAmt) panelAmt.value = fmt0(serviceTotal(key));
     recalc();
   });
-  amt.addEventListener("focus", () => (amt.value = parseAmt(amt.value) || ""));
-  amt.addEventListener("blur", () => (amt.value = fmt0(parseAmt(amt.value))));
+  amt.addEventListener("focus", () => {
+    amt.dataset.prev = String(parseAmt(amt.value) || 0);
+    amt.value = parseAmt(amt.value) || "";
+  });
+  amt.addEventListener("blur", () => {
+    amt.value = fmt0(parseAmt(amt.value));
+    // re-bifurcation: editing one section's price offsets the others
+    // so the offering total stays put (registration & individual only)
+    if (!isYearly(key))
+      rebalanceSections(card, key, parseAmt(amt.dataset.prev || "0"), parseAmt(amt.value));
+  });
+}
+
+/* spread an edit's delta over the OTHER priced sections (proportional,
+   never below zero) so the offering's total does not change */
+function rebalanceSections(card, key, oldV, newV) {
+  let delta = newV - oldV; // positive → others shrink; negative → grow
+  if (!delta) return;
+  const others = [
+    ...document.querySelectorAll(
+      `.svc-card:not(.svc-cont)[data-key="${key}"] input.i-amt:not([type="hidden"])`
+    ),
+  ].filter((i) => i.closest(".svc-card") !== card);
+  if (!others.length) return;
+  const base = others.reduce((s, i) => s + parseAmt(i.value), 0);
+  if (delta > 0 && base <= 0) return; // nothing left to absorb from
+  let remaining = delta;
+  others.forEach((i, idx) => {
+    const v = parseAmt(i.value);
+    let share =
+      idx === others.length - 1
+        ? remaining
+        : Math.round(delta * (base > 0 ? v / base : 1 / others.length));
+    if (v - share < 0) share = v; // a section can't go negative
+    remaining -= share;
+    i.value = fmt0(v - share);
+  });
+  const panelAmt = panelAmtInput(key);
+  if (panelAmt) panelAmt.value = fmt0(serviceTotal(key));
+  recalc();
 }
 
 function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afterEl) {
@@ -1650,7 +1688,8 @@ function recalc() {
   if (oneTime > 0 && yearly > 0) {
     feeEl.innerHTML =
       `<div class="fee-line"><span>Other Services</span><b>₹${fmt0(oneTimeFee)}/-</b></div>` +
-      `<div class="fee-line"><span>Package (Per Year)</span><b>₹${fmt0(yearlyFee)}/-</b></div>`;
+      `<div class="fee-line"><span>Package (Per Year)</span><b>₹${fmt0(yearlyFee)}/-</b></div>` +
+      `<div class="fee-line fee-line-total"><span>Total</span><b>₹${fmt0(oneTimeFee + yearlyFee)}/-</b></div>`;
   } else {
     feeEl.textContent = "₹" + fmt0(primaryFee) + "/-";
   }
@@ -2308,19 +2347,41 @@ function repaginate() {
       used += h;
       continue;
     }
-    // short closing blocks (fee strips, the grand-total box, the
-    // sign-off) and screen-only widgets (add buttons, restore bars —
-    // invisible in print) NEVER break to a fresh page on their own
+    // screen-only widgets (add buttons, restore bars — invisible in
+    // print) always squeeze onto the current page
     if (
-      b.classList.contains("offering-fee") ||
-      b.classList.contains("fee-box") ||
-      b.classList.contains("prop-signoff") ||
       b.classList.contains("offering-add") ||
       b.classList.contains("restore-bar") ||
       b.classList.contains("btn-add")
     ) {
       cur.push(b);
       used += h;
+      continue;
+    }
+    // closing blocks (fee strips, grand-total box, sign-off) never sit
+    // alone: squeeze if close, else carry the previous block along so
+    // they open the next page together
+    if (
+      b.classList.contains("offering-fee") ||
+      b.classList.contains("fee-box") ||
+      b.classList.contains("prop-signoff")
+    ) {
+      if (h - mb <= budget - used + 60) {
+        cur.push(b);
+        used += h;
+      } else {
+        // carry trailing screen-only widgets AND one real block along,
+        // so the new page opens with content, not a widget
+        const carried = [b];
+        const isWidget = (el) =>
+          el.classList.contains("offering-add") ||
+          el.classList.contains("restore-bar") ||
+          el.classList.contains("btn-add");
+        while (cur.length > 1 && isWidget(cur[cur.length - 1])) carried.unshift(cur.pop());
+        if (cur.length > 1) carried.unshift(cur.pop());
+        pages.push(carried);
+        used = carried.reduce((s, el) => s + outerH(el), 0);
+      }
       continue;
     }
     // an offering's FIRST card never splits — it stays with its heading

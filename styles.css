@@ -1482,6 +1482,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-combined .fee-line { display: flex; justify-content: flex-end; align-items: baseline; gap: 12px; }
 .fee-combined .fee-line span { font-size: 12px; font-weight: 700; color: #6b5310; }
 .fee-combined .fee-line b { font-size: 19px; font-weight: 800; color: #111; }
+.fee-combined .fee-line-total { border-top: 1.5px solid rgba(233, 179, 8, .6); margin-top: 5px; padding-top: 5px; }
 .fee-right { text-align: right; }
 .fee-yearly { font-size: 12px; font-weight: 700; color: var(--gold-deep, #a16207); margin-top: 4px; }
 
