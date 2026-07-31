@@ -1894,6 +1894,19 @@ function repaginate() {
       used += h;
       continue;
     }
+    // short closing blocks (fee strips, the grand-total box, the
+    // sign-off) never sit alone on a fresh page — squeeze them onto
+    // the current page with a bigger overflow allowance instead
+    if (
+      (b.classList.contains("offering-fee") ||
+        b.classList.contains("fee-box") ||
+        b.classList.contains("prop-signoff")) &&
+      h - mb <= budget - used + 140
+    ) {
+      cur.push(b);
+      used += h;
+      continue;
+    }
     // an offering's FIRST card never splits — it stays with its heading
     const offeringStart =
       b.classList.contains("svc-card") &&
