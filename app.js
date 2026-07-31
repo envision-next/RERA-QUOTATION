@@ -1081,6 +1081,39 @@ function rebuildIndex() {
   $("indexBlock").classList.toggle("empty", lines.length < 1);
 }
 
+/* per-offering fee strip — when more than one thing is billed, each
+   offering's charge prints at the end of its own section, before the
+   next offering begins (same style as the Professional Fee box) */
+function rebuildOfferingFees() {
+  document.querySelectorAll(".offering-fee").forEach((el) => el.remove());
+  const keys = selectedKeys();
+  const customCount = document.querySelectorAll(".svc-card.custom-card").length;
+  if (keys.length + customCount < 2) return;
+  const gst = parseFloat($("taxRate").value) || 0;
+  keys.forEach((key) => {
+    const cards = [...document.querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"]`)];
+    if (!cards.length) return;
+    const uids = new Set(cards.map((c) => c.dataset.uid));
+    let last = cards[cards.length - 1];
+    while (
+      last.nextElementSibling &&
+      last.nextElementSibling.classList.contains("svc-cont") &&
+      uids.has(last.nextElementSibling.dataset.contFor)
+    )
+      last = last.nextElementSibling;
+    const div = document.createElement("div");
+    div.className = "offering-fee";
+    const yearly = isYearly(key) ? " · Payable Yearly" : "";
+    div.innerHTML = `
+      <div class="of-left">
+        <div class="of-label">Professional Fee</div>
+        <div class="of-note">Exclusive of ${gst}% GST${yearly}</div>
+      </div>
+      <div class="of-amt">₹${fmt0(offeringAmount(key))}/-</div>`;
+    last.after(div);
+  });
+}
+
 /* total of a sectioned offering = sum of its priced pills */
 function serviceTotal(key) {
   let t = 0;
@@ -1314,6 +1347,7 @@ function recalc() {
   $("pGst").textContent = "₹ " + fmt(tax);
   $("pTotal").textContent = "₹ " + fmt(grand);
 
+  rebuildOfferingFees();
   rebuildIndex();
   syncProposal();
   schedulePaginate();

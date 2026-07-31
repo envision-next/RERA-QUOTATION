@@ -1359,6 +1359,22 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   align-items: center;
   gap: 20px;
 }
+
+/* per-offering fee strip: same look as the fee box, slimmer */
+.offering-fee {
+  margin-top: 14px;
+  background: var(--cream);
+  border-left: 4px solid var(--gold);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.offering-fee .of-label { font-weight: 800; font-size: 13.5px; letter-spacing: .4px; text-transform: uppercase; color: #111; }
+.offering-fee .of-note { font-size: 11px; color: #8a6d1a; margin-top: 2px; }
+.offering-fee .of-amt { font-size: 21px; font-weight: 800; color: #111; white-space: nowrap; }
 .fee-label {
   font-size: 13px;
   font-weight: 800;
@@ -1511,7 +1527,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
     page-break-inside: avoid;
   }
 
-  .prop-topbar, .card-head, .card-pill, .prop-callout, .fee-box,
+  .prop-topbar, .card-head, .card-pill, .prop-callout, .fee-box, .offering-fee,
   .prop-annex-head i, .prop-footer, .card-list li::before,
   .terms-list li::before, .proposal .docs-list li::before,
   .proposal .wordmark span {
@@ -1519,7 +1535,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
     print-color-adjust: exact;
   }
 
-  .svc-card, .fee-box, .prop-callout, .prop-signoff,
+  .svc-card, .fee-box, .offering-fee, .prop-callout, .prop-signoff,
   .terms-list li, .proposal .docs-list li, .card-list li {
     page-break-inside: avoid;
     break-inside: avoid;
