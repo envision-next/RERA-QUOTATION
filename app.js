@@ -2464,30 +2464,35 @@ function repaginate() {
           el.classList.contains("offering-add") ||
           el.classList.contains("restore-bar") ||
           el.classList.contains("btn-add");
-        // the real block above, peeking past screen-only widgets
-        let wi = cur.length - 1;
-        while (wi > 0 && isWidget(cur[wi])) wi--;
-        const prev = wi > 0 ? cur[wi] : null;
-        // best: split that card so its tail opens the next page with
-        // the fee strip — no void behind, nothing orphaned
+        // walk back over widgets AND small trailing blocks (a gov-fee
+        // strip, a short card) so the whole closing group moves as one
+        // — never leaving a strip separated from its cards
+        let i = cur.length - 1;
+        const carried = [];
+        let realH = 0;
+        while (i > 0) {
+          const el = cur[i];
+          if (isWidget(el)) { carried.unshift(el); i--; continue; }
+          const eh = outerH(el);
+          if (eh <= 350 && realH + eh <= 520) { carried.unshift(el); realH += eh; i--; continue; }
+          break;
+        }
+        const prev = i > 0 ? cur[i] : null;
+        // best: split that tall card so its tail opens the next page
+        // with the carried group — no void behind, nothing orphaned
         let cont = null;
         if (prev && prev.classList.contains("svc-card") && !focusCard) {
           const usedBefore =
-            cur.slice(0, wi + 1).reduce((s, el) => s + outerH(el), 0) - outerH(prev);
+            cur.slice(0, i + 1).reduce((s, el) => s + outerH(el), 0) - outerH(prev);
           cont = trySplitCard(prev, budget - usedBefore);
         }
-        if (cont) {
-          const widgets = cur.splice(wi + 1);
-          const grp = [cont, ...widgets, b];
-          pages.push(grp);
-          used = grp.reduce((s, el) => s + outerH(el), 0);
-        } else if (prev && outerH(prev) <= 350) {
-          // short neighbour: carry it (and the widgets) along
-          const grp = [...cur.splice(wi), b];
+        if (cont || realH > 0) {
+          cur.splice(i + 1);
+          const grp = [...(cont ? [cont] : []), ...carried, b];
           pages.push(grp);
           used = grp.reduce((s, el) => s + outerH(el), 0);
         } else {
-          // tall, unsplittable neighbour: squeezing beats a big void
+          // nothing sensible to carry: squeezing beats a big void
           cur.push(b);
           used += h;
         }
