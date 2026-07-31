@@ -1078,7 +1078,7 @@ function rebuildIndex() {
 
   // no totals here — the grand total prints at the end of the document
   // in the Professional Fee box, with the yearly payable under it
-  $("indexBlock").classList.toggle("empty", lines.length < 2);
+  $("indexBlock").classList.toggle("empty", lines.length < 1);
 }
 
 /* total of a sectioned offering = sum of its priced pills */
