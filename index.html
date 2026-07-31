@@ -36,6 +36,7 @@
     </div>
     <div class="appbar-actions">
       <button class="btn btn-ghost" id="btnNew" title="Start a new quotation"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New</button>
+      <button class="btn btn-ghost" id="btnUndo" title="Undo last change" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Undo</button>
       <button class="btn btn-ghost" id="btnSave" title="Save this quotation"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
       <button class="btn btn-ghost" id="btnHistory" title="View saved quotations"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>Saved</button>
       <span class="divider-v"></span>
@@ -213,7 +214,7 @@
 
         <!-- gold callout -->
         <div class="prop-callout">
-          As per our discussion, you have opted for RERA Consultation Services for <b id="coServices">the selected services</b> for your project “<b id="coProject">Project Name</b>”<span id="coReraPhrase"> bearing Project Registration Number “<b id="coRera">Registration Number</b>”</span>, being developed by “<b id="coPromoter">Promoter Name</b>”.
+          As per our discussion, you have opted for RERA Consultation Services for <b id="coServices">the selected services</b> for your project<span id="coProjPhrase"> “<b id="coProject">Project Name</b>”</span><span id="coReraPhrase"> bearing Project Registration Number “<b id="coRera">Registration Number</b>”</span><span id="coPromoterPhrase"><span id="coPromSep">, </span>being developed by “<b id="coPromoter">Promoter Name</b>”</span>.
         </div>
 
         <p class="prop-refer">Please refer to <b>Annexure A</b> for the services &amp; charges, and <b>Annexure B</b> for the list of documents required.</p>

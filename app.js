@@ -778,6 +778,7 @@ function panelAmtInput(key) {
 
 /* selecting a service = panel state + Annexure A card(s) + docs rebuild */
 function selectService(key, amount, subText, customAmt, secs, headText) {
+  pushUndo();
   const check = panelCheck(key);
   const amt = panelAmtInput(key);
   check.checked = true;
@@ -831,6 +832,7 @@ function addOfferingHead(key, headText) {
 }
 
 function deselectService(key) {
+  pushUndo();
   const check = panelCheck(key);
   const amt = panelAmtInput(key);
   check.checked = false;
@@ -857,6 +859,7 @@ let REMOVED_SECS = {};
 /* remove a SINGLE section of a multi-section offering; only when the
    last remaining section goes do we deselect the whole offering */
 function removeSectionCard(card, key) {
+  pushUndo();
   // snapshot the section (with any edits) so it can be restored
   const inp = card.querySelector(".i-amt");
   (REMOVED_SECS[key] = REMOVED_SECS[key] || []).push({
@@ -908,6 +911,7 @@ function updateRestoreBar(key) {
 }
 
 function restoreSection(key, i) {
+  pushUndo();
   const removed = REMOVED_SECS[key];
   const s = removed && removed[i];
   if (!s) return;
@@ -1008,8 +1012,17 @@ function addServiceCard(key, amount, subText, customAmt) {
 function addSectionCards(key, secs) {
   if (serviceCard(key)) return;
   let prev = null;
+  // newer saves carry each section's catalogue index, so removed
+  // sections stay removed on load/undo; legacy saves map by position
+  const hasIdx = Array.isArray(secs) && secs.length > 0 && secs[0] && secs[0].idx !== undefined;
   CATALOGUE[key].sections.forEach((sec, i) => {
-    const saved = secs && secs[i];
+    let saved = null;
+    if (hasIdx) {
+      saved = secs.find((s) => s.idx === i);
+      if (!saved) return; // this section was removed when saved
+    } else if (secs) {
+      saved = secs[i];
+    }
     const priced = saved ? saved.amt != null : sec.price != null;
     const amount = saved ? saved.amt || 0 : sec.price || 0;
     const sub = saved ? saved.sub : sec.items.join("\n");
@@ -1203,6 +1216,7 @@ function currentExclusionLines(key) {
 }
 
 function setOtherState(okey, on, count) {
+  if (OTHER[okey].on !== on || (count && OTHER[okey].count !== count)) pushUndo();
   OTHER[okey].on = on;
   if (count) OTHER[okey].count = count;
   const check = document.querySelector(`.other-check[data-okey="${okey}"]`);
@@ -1277,6 +1291,7 @@ function refreshOtherServices() {
 
 /* free-form custom card (e.g. liaison visits, drafting extras) */
 function addCustomCard(item = {}) {
+  pushUndo();
   const it = { desc: "", sub: "", amt: 0, ...item };
   const card = document.createElement("div");
   card.className = "svc-card custom-card";
@@ -1290,6 +1305,7 @@ function addCustomCard(item = {}) {
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Details (click to edit)">${scopeListHtml(it.sub) || "<li><br></li>"}</ol>
   `;
   card.querySelector(".row-del").addEventListener("click", () => {
+    pushUndo();
     document
       .querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"]`)
       .forEach((c) => c.remove());
@@ -1324,6 +1340,7 @@ function readItems() {
         // sectioned: capture every section's pill & edited items
         const cards = [...document.querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"]`)];
         const secs = cards.map((c) => ({
+          idx: parseInt(c.dataset.sec, 10) || 0,
           amt: c.querySelector(".i-amt") ? parseAmt(c.querySelector(".i-amt").value) : null,
           sub: cardSubLines(c).join("\n"),
         }));
@@ -1470,6 +1487,7 @@ function rebuildDocs() {
     const li = document.createElement("li");
     li.innerHTML = `${escapeHtml(d)} <button class="doc-del no-print" title="Remove">${ICON_X}</button>`;
     li.querySelector(".doc-del").addEventListener("click", () => {
+      pushUndo();
       const i = extraDocs.indexOf(d);
       if (i >= 0) extraDocs.splice(i, 1);
       else removedDocs.add(d);
@@ -1487,6 +1505,7 @@ function addExtraDoc() {
   const inp = $("docAddInput");
   const d = inp.value.trim();
   if (!d) return;
+  pushUndo();
   removedDocs.delete(d);
   if (!extraDocs.includes(d)) extraDocs.push(d);
   inp.value = "";
@@ -1503,8 +1522,13 @@ function syncCustomer() {
   $("coPromoter").textContent = name || "Promoter Name";
   $("coProject").textContent = proj || "Project Name";
   $("coRera").textContent = rera || "Registration Number";
-  // drop the "bearing Project Registration Number …" phrase when blank
+  // every callout phrase drops out when its field is blank
+  $("coProjPhrase").style.display = proj ? "" : "none";
   $("coReraPhrase").style.display = rera ? "" : "none";
+  $("coPromoterPhrase").style.display = name ? "" : "none";
+  // "…project being developed by…" reads without a comma when there is
+  // no project name / RERA number before it
+  $("coPromSep").textContent = proj || rera ? ", " : " ";
   syncProposal();
 }
 
@@ -1571,9 +1595,11 @@ function quoteAnalytics(record) {
   };
 }
 
-async function saveQuotation() {
+/* the full state of the sheet as one plain object — used for saving
+   AND for undo snapshots */
+function buildRecord() {
   const { services, customItems } = readItems();
-  const record = {
+  return {
     id: Date.now(),
     savedNo: loadedQuoteNo, // null → server issues a fresh, unique number
     quoteNo: $("quoteNo").value.trim(),
@@ -1601,6 +1627,53 @@ async function saveQuotation() {
     removedDocs: [...removedDocs],
     savedAt: new Date().toISOString(),
   };
+}
+
+/* ---------- global undo (structural changes) ---------- */
+
+let UNDO_STACK = [];
+let RESTORING = false; // suppress snapshots while state is being rebuilt
+
+function pushUndo() {
+  if (RESTORING) return;
+  try {
+    const rec = buildRecord();
+    rec._loadedNo = loadedQuoteNo;
+    delete rec.id;
+    delete rec.savedAt;
+    const s = JSON.stringify(rec);
+    if (UNDO_STACK[UNDO_STACK.length - 1] === s) return; // no-op change
+    UNDO_STACK.push(s);
+    if (UNDO_STACK.length > 40) UNDO_STACK.shift();
+    updateUndoBtn();
+  } catch (e) {
+    console.error("undo snapshot failed:", e);
+  }
+}
+
+function undo() {
+  const s = UNDO_STACK.pop();
+  if (!s) return;
+  RESTORING = true;
+  try {
+    const rec = JSON.parse(s);
+    loadQuotation(rec);
+    loadedQuoteNo = rec._loadedNo ?? null;
+    $("quoteNo").value = rec.quoteNo || $("quoteNo").value;
+    syncMeta();
+  } finally {
+    RESTORING = false;
+  }
+  updateUndoBtn();
+}
+
+function updateUndoBtn() {
+  const b = $("btnUndo");
+  if (b) b.disabled = !UNDO_STACK.length;
+}
+
+async function saveQuotation() {
+  const record = buildRecord();
   record.analytics = quoteAnalytics(record);
   try {
     const saved = await Store.save(record);
@@ -1618,6 +1691,17 @@ async function saveQuotation() {
 }
 
 function loadQuotation(q) {
+  pushUndo(); // loading over the current sheet is undoable
+  const wasRestoring = RESTORING;
+  RESTORING = true;
+  try {
+    loadQuotationInner(q);
+  } finally {
+    RESTORING = wasRestoring;
+  }
+}
+
+function loadQuotationInner(q) {
   clearSheet();
 
   loadedQuoteNo = q.quoteNo || null; // saving again updates this row
@@ -1740,7 +1824,13 @@ function clearSheet() {
 }
 
 async function newQuotation() {
-  clearSheet();
+  pushUndo(); // starting fresh is undoable
+  RESTORING = true;
+  try {
+    clearSheet();
+  } finally {
+    RESTORING = false;
+  }
   loadedQuoteNo = null; // fresh quote → server assigns a new number on save
   $("quoteNo").value = await nextQuoteNo();
   $("quoteStatus").value = "draft";
@@ -2220,6 +2310,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   $("btnAddRow").addEventListener("click", () => addCustomCard());
+  $("btnUndo").addEventListener("click", undo);
   $("btnSave").addEventListener("click", saveQuotation);
   $("btnNew").addEventListener("click", newQuotation);
   $("btnHistory").addEventListener("click", openDrawer);
