@@ -1138,8 +1138,8 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 }
 
 /* the real RERA Easy logo (extracted from 5.pdf) */
-.logo-img { height: 48px; width: auto; display: block; flex: none; }
-.logo-sm { height: 26px; }
+.logo-img { height: 68px; width: auto; display: block; flex: none; }
+.logo-sm { height: 40px; }
 
 /* wordmark goes black + gold on the proposal */
 .proposal .wordmark { color: #111; margin-bottom: 0; }
