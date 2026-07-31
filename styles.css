@@ -1375,6 +1375,8 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .offering-fee .of-label { font-weight: 800; font-size: 13.5px; letter-spacing: .4px; text-transform: uppercase; color: #111; }
 .offering-fee .of-note { font-size: 11px; color: #8a6d1a; margin-top: 2px; }
 .offering-fee .of-amt { font-size: 21px; font-weight: 800; color: #111; white-space: nowrap; }
+.offering-fee .of-right { text-align: right; }
+.offering-fee .of-per { font-size: 11px; font-weight: 700; color: #8a6d1a; margin-top: 2px; }
 .fee-label {
   font-size: 13px;
   font-weight: 800;

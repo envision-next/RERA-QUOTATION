@@ -1103,13 +1103,16 @@ function rebuildOfferingFees() {
       last = last.nextElementSibling;
     const div = document.createElement("div");
     div.className = "offering-fee";
-    const yearly = isYearly(key) ? " · Payable Yearly" : "";
+    const perYear = isYearly(key) ? `<div class="of-per">Payable Per Year</div>` : "";
     div.innerHTML = `
       <div class="of-left">
         <div class="of-label">Professional Fee</div>
-        <div class="of-note">Exclusive of ${gst}% GST${yearly}</div>
+        <div class="of-note">Exclusive of ${gst}% GST</div>
       </div>
-      <div class="of-amt">₹${fmt0(offeringAmount(key))}/-</div>`;
+      <div class="of-right">
+        <div class="of-amt">₹${fmt0(offeringAmount(key))}/-</div>
+        ${perYear}
+      </div>`;
     last.after(div);
   });
 }
