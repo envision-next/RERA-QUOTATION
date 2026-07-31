@@ -1142,7 +1142,9 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 /* the letterhead logo renders double size while occupying the same
    48px of layout, so the band and its rule stay exactly put */
 .prop-topbar .logo-img { height: 96px; margin-top: -24px; margin-bottom: -24px; }
-.logo-sm { height: 26px; }
+/* footer logo renders double size in the same 26px of layout, so
+   the footer strip keeps its height */
+.logo-sm { height: 52px; margin-top: -13px; margin-bottom: -13px; }
 
 /* wordmark goes black + gold on the proposal */
 .proposal .wordmark { color: #111; margin-bottom: 0; }
