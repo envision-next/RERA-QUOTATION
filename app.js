@@ -1316,10 +1316,16 @@ function recalc() {
   const tax = totalFee * (taxRate / 100);
   const grand = totalFee + tax;
 
-  // grand total in the fee box EXCLUDES the yearly package fee — that is
-  // called out separately below as "Yearly Payable"
+  // grand total: one-time total + package total marked "per Year",
+  // shown together in the fee box
   const primaryFee = oneTime > 0 ? oneTimeFee : yearlyFee;
-  $("tFee").textContent = "₹" + fmt0(primaryFee) + "/-";
+  const feeEl = $("tFee");
+  feeEl.classList.toggle("fee-combined", oneTime > 0 && yearly > 0);
+  if (oneTime > 0 && yearly > 0) {
+    feeEl.textContent = `₹${fmt0(oneTimeFee)}/- + ₹${fmt0(yearlyFee)}/- (Yearly)`;
+  } else {
+    feeEl.textContent = "₹" + fmt0(primaryFee) + "/-";
+  }
   $("feeGstPct").textContent = taxRate;
   $("feeDiscNote").textContent = discountRate > 0 ? ` · Includes ${discountRate}% discount` : "";
   $("amountWords").textContent =
@@ -1329,10 +1335,7 @@ function recalc() {
 
   const yEl = $("feeYearly");
   if (yEl) {
-    if (yearly > 0 && oneTime > 0) {
-      yEl.textContent = `Yearly Payable (Packages): ₹${fmt0(yearlyFee)}/- + ${taxRate}% GST`;
-      yEl.style.display = "";
-    } else if (yearly > 0) {
+    if (yearly > 0 && oneTime === 0) {
       yEl.textContent = "This package fee is payable yearly.";
       yEl.style.display = "";
     } else {
