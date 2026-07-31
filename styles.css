@@ -1060,25 +1060,25 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   .sheet-area { display: block; }
   #pagesContainer { display: block; }
 
+  /* WYSIWYG: every on-screen sheet IS one A4 page — identical size,
+     padding and flex layout as the preview, so nothing moves */
   .sheet {
-    width: 100%;
+    width: 210mm;
+    height: 297mm;
+    min-height: 0;
     max-width: none;
-    min-height: 290mm;
+    margin: 0;
     box-shadow: none;
     border-radius: 0;
-    padding: 12mm 14mm;
+    padding: 15mm 14mm;         /* same as the preview */
     animation: none;
-    display: block;             /* let content flow & break across pages */
+    display: flex;              /* same layout engine as the preview */
+    flex-direction: column;
+    overflow: hidden;
+    page-break-after: always;
+    break-after: page;
   }
-
-  /* keep logical blocks whole across page breaks */
-  .items-table tr,
-  .totals-row,
-  .foot-block,
-  .signature,
-  .docs-list li { page-break-inside: avoid; break-inside: avoid; }
-
-  .items-table thead { display: table-header-group; } /* repeats per page */
+  #pagesContainer .sheet:last-child { page-break-after: auto; break-after: auto; }
 
   .items-table thead th,
   .totals-table tr.grand,
@@ -1614,35 +1614,13 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   .card-head { flex-wrap: wrap; }
 }
 
-/* --- print: keep the design's inks & keep blocks whole --- */
+/* --- print: keep the design's inks; layout is 1:1 with the preview --- */
 @media print {
-  /* start each on-screen sheet on a fresh page, but let a tall sheet
-     (the proposal) FLOW across as many A4 pages as it needs. A flex
-     container gets clipped to one page by the browser, which was
-     cutting off everything after page 1 — so force block flow here. */
-  .sheet { display: block; page-break-after: always; break-after: page; }
-  .sheet.fixed-page { display: block; }
-  #pagesContainer .sheet:last-child { page-break-after: auto; break-after: auto; }
-
+  /* the proposal sheets keep their exact preview layout: padding 0,
+     footer pinned by the same flex margin-top:auto as on screen */
   .sheet.proposal { padding: 0; }
-  .prop-topbar { padding-top: 10mm; }
+  .sheet.fixed-page { padding: 0; }
   .prop-footer { border-radius: 0; }   /* paper corners aren't rounded in print */
-  /* pin the footer strip to the bottom of every printed page — each
-     sheet is exactly one page's content, so absolute-bottom works */
-  .sheet.proposal {
-    position: relative;
-    min-height: 290mm;
-    padding-bottom: 32mm;
-  }
-  .sheet.proposal > .prop-footer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin-top: 0;
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
 
   .prop-topbar, .card-head, .card-pill, .prop-callout, .fee-box, .offering-fee,
   .prop-annex-head i, .prop-footer, .card-list li::before,
@@ -1650,11 +1628,5 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   .proposal .wordmark span {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-  }
-
-  .svc-card, .fee-box, .offering-fee, .prop-callout, .prop-signoff,
-  .terms-list li, .proposal .docs-list li, .card-list li {
-    page-break-inside: avoid;
-    break-inside: avoid;
   }
 }
