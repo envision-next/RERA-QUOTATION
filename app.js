@@ -1322,7 +1322,9 @@ function recalc() {
   const feeEl = $("tFee");
   feeEl.classList.toggle("fee-combined", oneTime > 0 && yearly > 0);
   if (oneTime > 0 && yearly > 0) {
-    feeEl.textContent = `₹${fmt0(oneTimeFee)}/- + ₹${fmt0(yearlyFee)}/- (Yearly)`;
+    feeEl.innerHTML =
+      `<div class="fee-line"><span>Other Services</span><b>₹${fmt0(oneTimeFee)}/-</b></div>` +
+      `<div class="fee-line"><span>Package (Per Year)</span><b>₹${fmt0(yearlyFee)}/-</b></div>`;
   } else {
     feeEl.textContent = "₹" + fmt0(primaryFee) + "/-";
   }
