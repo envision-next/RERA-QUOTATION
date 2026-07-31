@@ -1102,11 +1102,44 @@ function toggleSectionPill(card, key) {
   pushUndo();
   const pill = card.querySelector(".card-pill");
   const wasIncluded = pill.classList.contains("card-pill-outline");
+  const otherInputs = () =>
+    [...document.querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"] input.i-amt:not([type="hidden"])`)]
+      .filter((i) => i.closest(".svc-card") !== card);
   if (!wasIncluded) {
     const inp = card.querySelector(".i-amt");
-    card.dataset.lastAmt = String(parseAmt(inp?.value) || 0);
+    const amt = parseAmt(inp?.value) || 0;
+    card.dataset.lastAmt = String(amt);
     pill.outerHTML = sectionPillHtml(false, 0);
+    // the offering total must not change: spread this section's price
+    // proportionally over the remaining priced sections below
+    const others = otherInputs();
+    if (amt > 0 && others.length) {
+      const base = others.reduce((s, i) => s + parseAmt(i.value), 0);
+      let remaining = amt;
+      const adj = {};
+      others.forEach((i, idx) => {
+        const v = parseAmt(i.value);
+        const share =
+          idx === others.length - 1
+            ? remaining
+            : Math.round(amt * (base > 0 ? v / base : 1 / others.length));
+        remaining -= share;
+        i.value = fmt0(v + share);
+        adj[i.closest(".svc-card").dataset.uid] = share;
+      });
+      card.dataset.absorbed = JSON.stringify(adj);
+    }
   } else {
+    // give back exactly what the other sections absorbed, then
+    // restore this section's own price
+    try {
+      const adj = JSON.parse(card.dataset.absorbed || "{}");
+      Object.entries(adj).forEach(([uid, share]) => {
+        const inp = document.querySelector(`.svc-card[data-uid="${uid}"] input.i-amt:not([type="hidden"])`);
+        if (inp) inp.value = fmt0(Math.max(0, parseAmt(inp.value) - share));
+      });
+    } catch (e) {}
+    delete card.dataset.absorbed;
     const secIdx = parseInt(card.dataset.sec, 10) || 0;
     const catAmt =
       (CATALOGUE[key].sections && CATALOGUE[key].sections[secIdx] && CATALOGUE[key].sections[secIdx].price) || 0;
@@ -2276,13 +2309,15 @@ function repaginate() {
       continue;
     }
     // short closing blocks (fee strips, the grand-total box, the
-    // sign-off) NEVER sit alone on a fresh page — they always squeeze
-    // onto the current page; screen-only widgets above them free the
-    // equivalent space in print
+    // sign-off) and screen-only widgets (add buttons, restore bars —
+    // invisible in print) NEVER break to a fresh page on their own
     if (
       b.classList.contains("offering-fee") ||
       b.classList.contains("fee-box") ||
-      b.classList.contains("prop-signoff")
+      b.classList.contains("prop-signoff") ||
+      b.classList.contains("offering-add") ||
+      b.classList.contains("restore-bar") ||
+      b.classList.contains("btn-add")
     ) {
       cur.push(b);
       used += h;
