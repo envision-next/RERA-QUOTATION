@@ -167,6 +167,11 @@ function startSessionWatch() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") checkSession();
   });
+  // mobile browsers freeze timers in background and don't always fire
+  // visibilitychange on return — cover every wake-up signal they send
+  window.addEventListener("focus", checkSession);
+  window.addEventListener("pageshow", checkSession);
+  window.addEventListener("online", checkSession);
   // tabs of the SAME browser share one session — keep them in sync so
   // a sibling tab's login/logout applies here instantly
   window.addEventListener("storage", (e) => {
