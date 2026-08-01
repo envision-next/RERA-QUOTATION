@@ -281,6 +281,14 @@ function changePassword(user, oldPass, newPass) {
   return { ok: true };
 }
 
+/* Run from the editor to create a throwaway login (test / test1234)
+   for diagnosing session issues; delete its row from the Users tab
+   when finished. */
+function seedTest() {
+  usersSheet();
+  upsertUser({ username: "test", name: "Test", role: "user", password: "test1234" });
+}
+
 /* Run ONCE from the editor after pasting: creates admin / admin123.
    Change the password right after your first sign-in. */
 function seedAdmin() {
