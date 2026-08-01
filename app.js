@@ -167,6 +167,15 @@ function startSessionWatch() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") checkSession();
   });
+  // tabs of the SAME browser share one session — keep them in sync so
+  // a sibling tab's login/logout applies here instantly
+  window.addEventListener("storage", (e) => {
+    if (e.key !== AUTH_KEY) return;
+    try { AUTH = e.newValue ? JSON.parse(e.newValue) : null; } catch { AUTH = null; }
+    updateAuthUi();
+    if (AUTH) hideLogin();
+    else showLogin();
+  });
 }
 
 /* admin-only: list the team and add/update logins */
@@ -273,6 +282,15 @@ const Store = {
     });
     const data = await res.json();
     if (data.error === "auth") {
+      // another tab of this browser may have signed in meanwhile and
+      // written a fresh token — adopt it instead of wiping it
+      let stored = null;
+      try { stored = JSON.parse(localStorage.getItem(AUTH_KEY)); } catch {}
+      if (stored && stored.token && (!AUTH || stored.token !== AUTH.token)) {
+        AUTH = stored;
+        updateAuthUi();
+        throw new Error("Session refreshed - please retry");
+      }
       setAuth(null);
       showLogin();
       throw new Error("Please sign in");
