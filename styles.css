@@ -1539,6 +1539,34 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   padding-top: 8px;
 }
 
+/* Government Fees table: same statement layout as the Payment Summary
+   but dashed-bordered so it clearly reads as a separate charge */
+.fee-box.gov-box {
+  display: block;
+  margin-top: 5mm;
+  background: var(--cream);
+  border: 1.5px dashed rgba(233, 179, 8, .6);
+  border-left: 4px solid var(--gold, #e9b308);
+}
+.fee-box.gov-box .fee-left {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 2px solid var(--gold, #e9b308);
+  padding-bottom: 7px;
+  margin-bottom: 4px;
+}
+.fee-box.gov-box .fee-label { color: #8a6a06; }
+.fee-box.gov-box .fee-note { margin-top: 0; }
+.fee-box.gov-box .fee-right { text-align: left; }
+.fee-box.gov-box .fee-amount { font-size: 19px; }
+.fee-box.gov-box .fee-amount.fee-combined { text-align: left; font-size: 15px; white-space: normal; }
+.fee-box.gov-box .fee-combined .fee-line { justify-content: space-between; padding: 6px 0; }
+.fee-box.gov-box .fee-combined .fee-line + .fee-line { border-top: 1px solid rgba(233, 179, 8, .3); }
+.fee-box.gov-box .fee-combined .fee-line span { font-size: 12.5px; color: #8a6a06; }
+.fee-box.gov-box .fee-combined .fee-line b { font-size: 15px; color: #111; }
+
 /* combined one-time + yearly total: two labelled lines, right aligned */
 .fee-amount.fee-combined { font-size: 19px; white-space: normal; text-align: right; }
 .fee-combined .fee-line { display: flex; justify-content: flex-end; align-items: baseline; gap: 12px; }

@@ -1900,9 +1900,37 @@ function recalc() {
   } else {
     feeEl.textContent = "₹" + fmt0(primaryFee) + "/-";
   }
-  // government fees total: outside the grand total, GST-free
-  if (gov > 0) {
-    feeEl.innerHTML += `<div class="fee-line fee-line-gov"><span>Government Fees (GST not applicable)</span><b>₹${fmt0(gov)}/-</b></div>`;
+  // government fees live in their OWN table below the fee box — the
+  // fee box note says "exclusive of Government Fees", so mixing them
+  // in would read as a contradiction
+  const govBox = $("govBox");
+  if (govBox) {
+    if (gov > 0) {
+      govBox.style.display = "";
+      const gEl = $("tGovFee");
+      const govLines = keys
+        .map((k) => ({
+          name:
+            offeringHead(k)?.querySelector(".offering-title")?.innerText.trim() ||
+            SHORT_TITLES[k] || CATALOGUE[k].label,
+          amt: govTotal(k),
+        }))
+        .filter((l) => l.amt > 0);
+      if (grandMode && govLines.length > 1) {
+        gEl.classList.add("fee-combined");
+        gEl.innerHTML = govLines
+          .map(
+            (l) =>
+              `<div class="fee-line"><span>${escapeHtml(l.name)}</span><b>₹${fmt0(l.amt)}/-</b></div>`
+          )
+          .join("");
+      } else {
+        gEl.classList.remove("fee-combined");
+        gEl.textContent = "₹" + fmt0(gov) + "/-";
+      }
+    } else {
+      govBox.style.display = "none";
+    }
   }
   $("feeGstPct").textContent = taxRate;
   $("feeDiscNote").textContent = discountRate > 0 ? ` · Includes ${discountRate}% discount` : "";
