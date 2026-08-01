@@ -1682,13 +1682,22 @@ function addCustomCard(item = {}, parentKey) {
   if (parent) card.dataset.parent = parent;
   if (gov) card.dataset.gov = "1";
   card.dataset.yearly = yearly ? "1" : "0";
+  const included = !gov && !!it.included;
+  if (included) {
+    card.dataset.included = "1";
+    card.dataset.lastAmt = String(it.amt || 0);
+  }
   const descVal = it.desc || (gov ? "Government Fees" : "");
+  const pillHtml = included
+    ? `<div class="card-pill card-pill-outline">Included in our scope</div><input type="hidden" class="i-amt" value="0">`
+    : `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(it.amt)}"><span>/-</span></div>`;
   card.innerHTML = `
     <div class="card-head">
       <button class="drag-handle no-print" title="Drag to reorder">${ICON_GRIP}</button>
       <input type="text" class="i-desc" placeholder="ITEM / SERVICE NAME" value="${escapeAttr(descVal)}">
       ${gov ? "" : `<button class="yr-toggle no-print" title="Billed per year or one-time">${yearly ? "Per Year" : "One-time"}</button>`}
-      <div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(it.amt)}"><span>/-</span></div>
+      ${gov ? "" : `<button class="pill-toggle no-print" title="Switch between a price and Included in our scope">${ICON_SWAP}</button>`}
+      ${pillHtml}
       <button class="row-del no-print" title="Remove item">${ICON_X}</button>
     </div>
     <ol class="card-list" contenteditable="true" spellcheck="false" title="Details (click to edit)">${scopeListHtml(it.sub) || "<li><br></li>"}</ol>
@@ -1709,15 +1718,39 @@ function addCustomCard(item = {}, parentKey) {
     card.remove();
     recalc();
   });
-  card.querySelectorAll("input").forEach((inp) => {
-    inp.addEventListener("input", recalc);
-    // the full rebuild + repagination deferred while typing runs here
-    inp.addEventListener("blur", () => setTimeout(recalc, 0));
-  });
+  function wireInputs() {
+    card.querySelectorAll("input").forEach((inp) => {
+      inp.addEventListener("input", recalc);
+      // the full rebuild + repagination deferred while typing runs here
+      inp.addEventListener("blur", () => setTimeout(recalc, 0));
+    });
+    const amt = card.querySelector('input.i-amt:not([type="hidden"])');
+    if (amt) {
+      amt.addEventListener("focus", () => (amt.value = parseAmt(amt.value) || ""));
+      amt.addEventListener("blur", () => (amt.value = fmt0(parseAmt(amt.value))));
+    }
+  }
+  wireInputs();
 
-  const amt = card.querySelector(".i-amt");
-  amt.addEventListener("focus", () => (amt.value = parseAmt(amt.value) || ""));
-  amt.addEventListener("blur", () => (amt.value = fmt0(parseAmt(amt.value))));
+  // price <-> "Included in our scope"; the price is remembered so
+  // flipping back restores it
+  card.querySelector(".pill-toggle")?.addEventListener("click", () => {
+    pushUndo();
+    const pill = card.querySelector(".card-pill");
+    if (!pill.classList.contains("card-pill-outline")) {
+      card.dataset.lastAmt = String(parseAmt(card.querySelector(".i-amt")?.value) || 0);
+      card.dataset.included = "1";
+      pill.outerHTML = `<div class="card-pill card-pill-outline">Included in our scope</div><input type="hidden" class="i-amt" value="0">`;
+    } else {
+      delete card.dataset.included;
+      card.querySelector('input.i-amt[type="hidden"]')?.remove();
+      const back = parseAmt(card.dataset.lastAmt || "0");
+      card.querySelector(".card-pill").outerHTML =
+        `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(back)}"><span>/-</span></div>`;
+      wireInputs();
+    }
+    recalc();
+  });
 
   // with a parent: inside that offering's block, after its last card;
   // standalone: after every existing card, wherever pagination put it
@@ -1765,7 +1798,12 @@ function readItems() {
       customItems.push({
         desc: card.querySelector(".i-desc").value,
         sub: cardSubLines(card).join("\n"),
-        amt: parseAmt(card.querySelector(".i-amt").value),
+        // included items keep their remembered price so toggling back
+        // after a reload restores it
+        amt: card.dataset.included === "1"
+          ? parseAmt(card.dataset.lastAmt || "0")
+          : parseAmt(card.querySelector(".i-amt").value),
+        included: card.dataset.included === "1",
         parent: card.dataset.parent || null,
         yearly: card.dataset.yearly === "1",
         gov: card.dataset.gov === "1",
