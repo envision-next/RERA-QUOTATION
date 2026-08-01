@@ -1425,10 +1425,11 @@ function rebuildIndex() {
     if (desc || amt) lines.push({ name: desc || "Custom item", amt, yearly: c.dataset.yearly === "1" });
   });
 
+  // names only — prices live in the Payment Summary at the end
   tbl.innerHTML = lines
     .map(
       (l, i) =>
-        `<tr><td class="ix-no">${String(i + 1).padStart(2, "0")}</td><td>${escapeHtml(l.name)}</td><td class="ix-amt">₹ ${fmt0(l.amt)}*</td></tr>`
+        `<tr><td class="ix-no">${String(i + 1).padStart(2, "0")}</td><td>${escapeHtml(l.name)}</td></tr>`
     )
     .join("");
 
@@ -1464,7 +1465,7 @@ function profRightHtml(key, gst) {
         )
         .join("") +
       `<div class="of-line"><span>${mainLabel}</span><b>₹${fmt0(main)}/-</b></div>`
-    : `<div class="of-amt">₹${fmt0(main)}/-</div>` +
+    : `<div class="of-amt">₹${fmt0(main)}/-${offYearly ? "*" : ""}</div>` +
       (offYearly ? `<div class="of-per">*Payable per Year</div>` : "");
 }
 
