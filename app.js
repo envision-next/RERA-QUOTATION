@@ -149,6 +149,26 @@ function doLogout() {
   showLogin();
 }
 
+/* one session per user: if this login is used on another device, the
+   server invalidates our token — poll a lightweight "me" check every
+   30s (and on tab focus) so this device drops to the sign-in screen
+   by itself, no refresh needed. _post handles the actual logout. */
+async function checkSession() {
+  if (!AUTH || !Store.remote()) return;
+  try {
+    await Store._post({ action: "me" });
+  } catch (e) {
+    /* auth failures already showed the sign-in screen */
+  }
+}
+function startSessionWatch() {
+  if (!Store.remote()) return;
+  setInterval(checkSession, 30000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checkSession();
+  });
+}
+
 /* admin-only: list the team and add/update logins */
 async function openUsers() {
   $("usersOverlay").style.display = "flex";
@@ -3137,6 +3157,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // login gate + team management (remote mode only)
   updateAuthUi();
   if (Store.remote() && !AUTH) showLogin();
+  startSessionWatch();
   $("btnLogin")?.addEventListener("click", doLogin);
   $("loginPass")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") doLogin();

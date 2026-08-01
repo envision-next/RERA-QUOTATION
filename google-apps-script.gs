@@ -86,6 +86,10 @@ function doPost(e) {
     return json({ quotations: all, me: publicUser(user) });
   }
 
+  // lightweight session check — the app polls this to notice a forced
+  // logout (someone signed in elsewhere) without a page refresh
+  if (body.action === "me") return json({ me: publicUser(user) });
+
   if (body.action === "changePassword")
     return json(changePassword(user, body.oldPassword, body.newPassword));
 
@@ -150,10 +154,11 @@ function findUserRow(username) {
   return null;
 }
 
-// several devices can stay signed in at once: the token cell holds a
-// JSON list of {t: token, e: expiry}. Old plain-uuid cells (from the
-// single-session version) are still recognised.
-var MAX_SESSIONS = 6;
+// ONE active session per user: a new sign-in replaces the old token,
+// and the old device drops to the sign-in screen on its next session
+// check (the app polls every 30s). The token cell holds a JSON list
+// of {t: token, e: expiry}; old plain-uuid cells still parse.
+var MAX_SESSIONS = 1;
 
 function parseTokens(cell, legacyExp) {
   var s = String(cell || "");
