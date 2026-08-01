@@ -1580,6 +1580,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   padding: 6px 14px;
   white-space: nowrap;
 }
+body.modal-open { overflow: hidden; }
 .login-overlay {
   position: fixed;
   inset: 0;

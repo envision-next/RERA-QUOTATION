@@ -114,12 +114,14 @@ function showLogin() {
   const ov = $("loginOverlay");
   if (ov) {
     ov.style.display = "flex";
+    document.body.classList.add("modal-open"); // no scrolling behind the gate
     setTimeout(() => $("loginUser")?.focus(), 50);
   }
 }
 function hideLogin() {
   const ov = $("loginOverlay");
   if (ov) ov.style.display = "none";
+  document.body.classList.remove("modal-open");
 }
 
 async function doLogin() {
