@@ -1647,6 +1647,17 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .users-list li { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #eef1f6; }
 .users-list li:last-child { border-bottom: none; }
 .users-card .login-sub { text-align: left; }
+/* ghost buttons are styled for the dark appbar — on the white card
+   they'd be invisible */
+.users-head .btn-ghost { color: #333; border-color: #d3d9e2; }
+.users-head .btn-ghost:hover { background: #f2f4f8; color: #111; }
+.login-card .btn-back {
+  background: #f2f4f8;
+  color: #333;
+  border: 1px solid #d3d9e2;
+  margin-top: 2px;
+}
+.login-card .btn-back:hover { background: #e6e9f0; }
 @media print { .login-overlay, .auth-chip { display: none !important; } }
 
 /* combined one-time + yearly total: two labelled lines, right aligned */

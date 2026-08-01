@@ -3106,7 +3106,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   $("btnLogout")?.addEventListener("click", doLogout);
   $("btnUsers")?.addEventListener("click", openUsers);
-  $("btnCloseUsers")?.addEventListener("click", () => ($("usersOverlay").style.display = "none"));
+  const closeUsers = () => ($("usersOverlay").style.display = "none");
+  $("btnCloseUsers")?.addEventListener("click", closeUsers);
+  $("btnUsersBack")?.addEventListener("click", closeUsers);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeUsers();
+  });
   $("btnCreateUser")?.addEventListener("click", createUser);
   $("btnNew").addEventListener("click", newQuotation);
   $("btnHistory").addEventListener("click", openDrawer);
