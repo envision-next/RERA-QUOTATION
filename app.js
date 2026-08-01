@@ -2962,5 +2962,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("pagesContainer").addEventListener("focusout", () => {
     if (!PAGINATING) schedulePaginate();
   });
+  // backspacing away every point leaves an empty editable list that
+  // can't be clicked into — put a blank first point back and keep the
+  // caret inside it
+  $("pagesContainer").addEventListener("input", (e) => {
+    const list = e.target.closest && e.target.closest('.card-list[contenteditable="true"]');
+    if (!list || list.querySelector("li")) return;
+    list.innerHTML = "<li><br></li>";
+    const r = document.createRange();
+    r.selectNodeContents(list.querySelector("li"));
+    r.collapse(true);
+    const s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+  });
   schedulePaginate();
 });

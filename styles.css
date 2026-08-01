@@ -1507,6 +1507,38 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-box.grand .fee-line b { color: #111; }
 .fee-box.grand .fee-line span { color: #8a6a06; }
 
+/* Payment Summary layout: statement style — header row with a gold
+   rule, then full-width item rows (name left, amount right) divided
+   by hairlines. Same inks and type as the rest of the proposal. */
+.fee-box.grand { display: block; }
+.fee-box.grand .fee-left {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 2px solid var(--gold, #e9b308);
+  padding-bottom: 7px;
+  margin-bottom: 4px;
+}
+.fee-box.grand .fee-note { margin-top: 0; }
+.fee-box.grand .fee-right { text-align: left; }
+.fee-box.grand .fee-amount.fee-combined { text-align: left; font-size: 15px; }
+.fee-box.grand .fee-combined .fee-line {
+  justify-content: space-between;
+  padding: 6px 0;
+}
+.fee-box.grand .fee-combined .fee-line + .fee-line {
+  border-top: 1px solid rgba(233, 179, 8, .3);
+}
+.fee-box.grand .fee-combined .fee-line span { font-size: 12.5px; }
+.fee-box.grand .fee-combined .fee-line b { font-size: 15px; }
+.fee-box.grand .fee-combined .fee-line-gov {
+  justify-content: space-between;
+  border-top: 1.5px dashed rgba(233, 179, 8, .55);
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
 /* combined one-time + yearly total: two labelled lines, right aligned */
 .fee-amount.fee-combined { font-size: 19px; white-space: normal; text-align: right; }
 .fee-combined .fee-line { display: flex; justify-content: flex-end; align-items: baseline; gap: 12px; }
