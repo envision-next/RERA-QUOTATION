@@ -69,7 +69,9 @@ function updateAuthUi() {
     chip.textContent = AUTH ? `Hey, ${AUTH.name}` : "";
   }
   const users = $("btnUsers");
-  if (users) users.style.display = AUTH && AUTH.role === "admin" ? "" : "none";
+  if (users)
+    users.style.display =
+      AUTH && (AUTH.role === "admin" || AUTH.role === "manager") ? "" : "none";
   const out = $("btnLogout");
   if (out) out.style.display = AUTH ? "" : "none";
   const pass = $("btnPass");
@@ -150,6 +152,10 @@ function doLogout() {
 /* admin-only: list the team and add/update logins */
 async function openUsers() {
   $("usersOverlay").style.display = "flex";
+  // managers create plain users only — role choices are admin's
+  [...$("nuRole").options].forEach((o) => {
+    o.disabled = o.value !== "user" && AUTH?.role !== "admin";
+  });
   renderUsersList(null);
   try {
     const data = await Store._post({ action: "listUsers" });

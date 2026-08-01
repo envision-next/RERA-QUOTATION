@@ -90,13 +90,13 @@ function doPost(e) {
     return json(changePassword(user, body.oldPassword, body.newPassword));
 
   if (body.action === "listUsers") {
-    if (user.role !== "admin") return json({ error: "auth" });
+    if (user.role !== "admin" && user.role !== "manager") return json({ error: "auth" });
     return json({ users: listUsers() });
   }
 
   if (body.action === "createUser") {
-    if (user.role !== "admin") return json({ error: "auth" });
-    var res = upsertUser(body.user || {});
+    if (user.role !== "admin" && user.role !== "manager") return json({ error: "auth" });
+    var res = upsertUser(body.user || {}, user);
     return json(res);
   }
 
@@ -218,11 +218,18 @@ function listUsers() {
   return out;
 }
 
-// admin creates a new login, or updates an existing one (new name,
-// role, active flag, and — when a password is supplied — new password)
-function upsertUser(u) {
+// admin (or a manager the admin appointed) creates a new login, or
+// updates an existing one (new name, role, active flag, and — when a
+// password is supplied — new password). Managers may only create and
+// edit plain "user" accounts; roles stay in admin's hands.
+function upsertUser(u, actor) {
   if (!u.username) return { error: "Username required" };
+  var role = u.role === "admin" ? "admin" : u.role === "manager" ? "manager" : "user";
   var hit = findUserRow(u.username);
+  if (actor && actor.role !== "admin") {
+    if (role !== "user") return { error: "Only admin can create admins or managers" };
+    if (hit && hit.user.role !== "user") return { error: "Only admin can edit this account" };
+  }
   if (!hit && !u.password) return { error: "Password required for a new user" };
 
   var salt, hash;
@@ -236,7 +243,7 @@ function upsertUser(u) {
   var row = [
     String(u.username).trim(),
     u.name || (hit ? hit.user.name : u.username),
-    u.role === "admin" ? "admin" : "user",
+    role,
     salt, hash,
     hit ? hit.user.token : "",
     hit ? hit.user.tokenExp : "",
