@@ -35,6 +35,10 @@
       </div>
     </div>
     <div class="appbar-actions">
+      <span class="auth-chip" id="authChip" style="display:none"></span>
+      <button class="btn btn-ghost" id="btnUsers" title="Manage team logins (admin)" style="display:none"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team</button>
+      <button class="btn btn-ghost" id="btnLogout" title="Sign out" style="display:none"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</button>
+      <span class="divider-v"></span>
       <button class="btn btn-ghost" id="btnNew" title="Start a new quotation"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New</button>
       <button class="btn btn-ghost" id="btnUndo" title="Undo last change" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Undo</button>
       <button class="btn btn-ghost" id="btnSave" title="Save this quotation"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
@@ -315,6 +319,40 @@
         <li class="saved-empty">No saved quotations yet.</li>
       </ul>
     </aside>
+  </div>
+
+  <!-- ===== Sign in ===== -->
+  <div class="login-overlay" id="loginOverlay" style="display:none">
+    <div class="login-card">
+      <div class="brand-mark"><img src="favicon.png" alt="RERA Easy" /></div>
+      <h2>Quotation Builder</h2>
+      <p class="login-sub">Sign in to continue</p>
+      <input type="text" id="loginUser" placeholder="Username" autocomplete="username" />
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password" />
+      <div class="login-err" id="loginErr"></div>
+      <button class="btn btn-primary" id="btnLogin"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Sign in</button>
+    </div>
+  </div>
+
+  <!-- ===== Team logins (admin only) ===== -->
+  <div class="login-overlay" id="usersOverlay" style="display:none">
+    <div class="login-card users-card">
+      <div class="users-head">
+        <h2>Team Logins</h2>
+        <button class="btn btn-ghost" id="btnCloseUsers" title="Close"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <ul class="users-list" id="usersList"></ul>
+      <p class="login-sub">Add a user, or type an existing username to update it. Leave the password blank to keep the current one.</p>
+      <input type="text" id="nuName" placeholder="Full name" />
+      <input type="text" id="nuUser" placeholder="Username" autocomplete="off" />
+      <input type="text" id="nuPass" placeholder="Password" autocomplete="off" />
+      <select id="nuRole">
+        <option value="user">User (sees own quotations)</option>
+        <option value="admin">Admin (sees everything)</option>
+      </select>
+      <div class="login-err" id="nuErr"></div>
+      <button class="btn btn-primary" id="btnCreateUser"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Save user</button>
+    </div>
   </div>
 
   <script src="app.js"></script>

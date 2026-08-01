@@ -6,18 +6,32 @@
  * Web App. Full steps are in SETUP.md.
  *
  * What it does:
- *   • Stores every saved quotation as a row in the Sheet.
+ *   • Login-protected: every request (except login) carries a
+ *     token issued at sign-in. Users see only their own saved
+ *     quotations; admins see everything and manage accounts.
+ *   • Stores every saved quotation as a row in the Sheet, with
+ *     createdBy / creatorName columns for per-person analytics.
  *   • Issues quotation numbers (QT0001, QT0002, …) from ONE
  *     shared counter, locked so two people saving at the same
  *     time can never get the same number, and numbers are
  *     never reused (monotonic).
+ *
+ * FIRST-TIME SETUP after pasting:
+ *   1. In the toolbar function dropdown pick "seedAdmin" and
+ *      click Run (creates login  admin / admin123).
+ *   2. Deploy ▸ Manage deployments ▸ Edit ▸ New version.
+ *   3. Sign in to the app as admin and change the password
+ *      (Team Logins ▸ re-save "admin" with a new password).
  ************************************************************/
 
 var SHEET_NAME  = "Quotations";
+var USERS_NAME  = "Users";
 var COUNTER_KEY = "quoteCounter";
+var TOKEN_DAYS  = 7; // sign-in stays valid this long
 
 // Column order written to the sheet (analytics-friendly). The full
-// quotation JSON stays in the last column for completeness.
+// quotation JSON stays where it always was; the login columns are
+// appended AFTER it so rows saved before login existed still parse.
 var HEADER = [
   "quoteNo", "savedAt", "date", "validTill", "status",
   "customer", "phone", "email", "address",
@@ -25,16 +39,23 @@ var HEADER = [
   "services", "serviceCount",
   "subtotal", "discountRate", "discountAmt",
   "gstRate", "gstAmt", "grandTotal",
-  "notes", "json"
+  "notes", "json",
+  "createdBy", "creatorName"
 ];
-var JSON_COL = HEADER.length - 1; // 0-based index of the json column
+var JSON_COL = HEADER.indexOf("json");
+
+var USERS_HEADER = [
+  "username", "name", "role", "salt", "passwordHash",
+  "token", "tokenExp", "createdAt", "active"
+];
 
 /* ---------- HTTP entry points ---------- */
 
 function doGet(e) {
-  var action = (e && e.parameter && e.parameter.action) || "list";
+  var action = (e && e.parameter && e.parameter.action) || "";
   if (action === "next") return json({ quoteNo: peekNext() });
-  return json({ quotations: listAll() });
+  // data never leaves without a token — use POST {action:"list", token}
+  return json({ error: "auth" });
 }
 
 function doPost(e) {
@@ -44,9 +65,168 @@ function doPost(e) {
   } catch (err) {
     return json({ error: "Bad request body" });
   }
-  if (body.action === "save")   return json({ record: saveRecord(body.record || {}) });
-  if (body.action === "delete") { deleteRecord(body.quoteNo); return json({ ok: true }); }
+
+  if (body.action === "login") return json(login(body.username, body.password));
+
+  var user = auth(body.token);
+  if (!user) return json({ error: "auth" });
+
+  if (body.action === "save")
+    return json({ record: saveRecord(body.record || {}, user) });
+
+  if (body.action === "delete") {
+    var err = deleteRecord(body.quoteNo, user);
+    return json(err ? { error: err } : { ok: true });
+  }
+
+  if (body.action === "list") {
+    var all = listAll();
+    if (user.role !== "admin")
+      all = all.filter(function (q) { return q.createdBy === user.username; });
+    return json({ quotations: all, me: publicUser(user) });
+  }
+
+  if (body.action === "listUsers") {
+    if (user.role !== "admin") return json({ error: "auth" });
+    return json({ users: listUsers() });
+  }
+
+  if (body.action === "createUser") {
+    if (user.role !== "admin") return json({ error: "auth" });
+    var res = upsertUser(body.user || {});
+    return json(res);
+  }
+
   return json({ error: "Unknown action" });
+}
+
+/* ---------- users & sessions ---------- */
+
+function usersSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(USERS_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(USERS_NAME);
+    sh.appendRow(USERS_HEADER);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function hashPass(salt, pass) {
+  var bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256, salt + "|" + String(pass),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function (b) {
+    var v = (b < 0 ? b + 256 : b).toString(16);
+    return v.length === 1 ? "0" + v : v;
+  }).join("");
+}
+
+function userRows() {
+  return usersSheet().getDataRange().getValues();
+}
+
+function rowToUser(row) {
+  var u = {};
+  USERS_HEADER.forEach(function (h, i) { u[h] = row[i]; });
+  return u;
+}
+
+function publicUser(u) {
+  return { username: u.username, name: u.name, role: u.role };
+}
+
+function findUserRow(username) {
+  var rows = userRows();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).toLowerCase() === String(username).toLowerCase())
+      return { index: i + 1, user: rowToUser(rows[i]) };
+  }
+  return null;
+}
+
+function login(username, password) {
+  if (!username || !password) return { error: "Enter username and password" };
+  var hit = findUserRow(username);
+  if (!hit || String(hit.user.active) === "false" || hit.user.active === false)
+    return { error: "Wrong username or password" };
+  if (hashPass(hit.user.salt, password) !== hit.user.passwordHash)
+    return { error: "Wrong username or password" };
+
+  var token = Utilities.getUuid();
+  var exp = Date.now() + TOKEN_DAYS * 24 * 60 * 60 * 1000;
+  var sh = usersSheet();
+  sh.getRange(hit.index, USERS_HEADER.indexOf("token") + 1).setValue(token);
+  sh.getRange(hit.index, USERS_HEADER.indexOf("tokenExp") + 1).setValue(exp);
+  return { token: token, username: hit.user.username, name: hit.user.name, role: hit.user.role };
+}
+
+function auth(token) {
+  if (!token) return null;
+  var rows = userRows();
+  var ti = USERS_HEADER.indexOf("token");
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][ti] === token) {
+      var u = rowToUser(rows[i]);
+      if (Number(u.tokenExp) < Date.now()) return null;
+      if (String(u.active) === "false" || u.active === false) return null;
+      return u;
+    }
+  }
+  return null;
+}
+
+function listUsers() {
+  var rows = userRows();
+  var out = [];
+  for (var i = 1; i < rows.length; i++) {
+    var u = rowToUser(rows[i]);
+    out.push({
+      username: u.username, name: u.name, role: u.role,
+      active: !(String(u.active) === "false" || u.active === false)
+    });
+  }
+  return out;
+}
+
+// admin creates a new login, or updates an existing one (new name,
+// role, active flag, and — when a password is supplied — new password)
+function upsertUser(u) {
+  if (!u.username) return { error: "Username required" };
+  var hit = findUserRow(u.username);
+  if (!hit && !u.password) return { error: "Password required for a new user" };
+
+  var salt, hash;
+  if (u.password) {
+    salt = Utilities.getUuid();
+    hash = hashPass(salt, u.password);
+  } else {
+    salt = hit.user.salt;
+    hash = hit.user.passwordHash;
+  }
+  var row = [
+    String(u.username).trim(),
+    u.name || (hit ? hit.user.name : u.username),
+    u.role === "admin" ? "admin" : "user",
+    salt, hash,
+    hit ? hit.user.token : "",
+    hit ? hit.user.tokenExp : "",
+    hit ? hit.user.createdAt : new Date().toISOString(),
+    u.active === false ? false : true
+  ];
+  var sh = usersSheet();
+  if (hit) sh.getRange(hit.index, 1, 1, row.length).setValues([row]);
+  else sh.appendRow(row);
+  return { ok: true, users: listUsers() };
+}
+
+/* Run ONCE from the editor after pasting: creates admin / admin123.
+   Change the password right after your first sign-in. */
+function seedAdmin() {
+  usersSheet();
+  upsertUser({ username: "admin", name: "Admin", role: "admin", password: "admin123" });
 }
 
 /* ---------- sheet helpers ---------- */
@@ -88,7 +268,9 @@ function buildRow(record) {
     a.taxAmt || 0,
     a.grandTotal || 0,
     record.notes || "",
-    JSON.stringify(record)
+    JSON.stringify(record),
+    record.createdBy || "",
+    record.creatorName || ""
   ];
 }
 
@@ -134,7 +316,7 @@ function nextNumberAtomic() {
 
 /* ---------- save / delete ---------- */
 
-function saveRecord(record) {
+function saveRecord(record, user) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -155,6 +337,21 @@ function saveRecord(record) {
     }
     record.savedAt = new Date().toISOString();
 
+    // who saved it — updates keep the original owner
+    if (rowIndex !== -1) {
+      try {
+        var prev = JSON.parse(rows[rowIndex - 1][JSON_COL] || "{}");
+        record.createdBy = prev.createdBy || user.username;
+        record.creatorName = prev.creatorName || user.name;
+      } catch (err) {
+        record.createdBy = user.username;
+        record.creatorName = user.name;
+      }
+    } else {
+      record.createdBy = user.username;
+      record.creatorName = user.name;
+    }
+
     var values = buildRow(record);
     if (rowIndex === -1) sh.appendRow(values);
     else sh.getRange(rowIndex, 1, 1, values.length).setValues([values]);
@@ -165,16 +362,25 @@ function saveRecord(record) {
   }
 }
 
-function deleteRecord(quoteNo) {
-  if (!quoteNo) return;
+// users may delete only their own quotations; admins any
+function deleteRecord(quoteNo, user) {
+  if (!quoteNo) return null;
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     var sh = sheet();
     var rows = sh.getDataRange().getValues();
     for (var i = rows.length - 1; i >= 1; i--) {
-      if (rows[i][0] === quoteNo) sh.deleteRow(i + 1);
+      if (rows[i][0] === quoteNo) {
+        if (user.role !== "admin") {
+          var owner = "";
+          try { owner = (JSON.parse(rows[i][JSON_COL] || "{}").createdBy) || ""; } catch (err) {}
+          if (owner && owner !== user.username) return "Only admin can delete this quotation";
+        }
+        sh.deleteRow(i + 1);
+      }
     }
+    return null;
   } finally {
     lock.releaseLock();
   }
@@ -183,7 +389,8 @@ function deleteRecord(quoteNo) {
 /* ---------- one-time reset (run manually from the editor) ----------
    Select "resetAll" in the toolbar function dropdown and click Run.
    Wipes all saved rows and restarts numbering, so the next save is
-   QT0001. Does NOT touch anything served over the web. ----------- */
+   QT0001. Does NOT touch the Users tab or anything served over the
+   web. ----------------------------------------------------------- */
 function resetAll() {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);

@@ -47,6 +47,124 @@ const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz153uFaiXhZNLMJT
 // on screen; null means "new, not saved yet"
 let loadedQuoteNo = null;
 
+/* ---------- login session ----------
+   The server issues a token at sign-in; every data call carries it.
+   Users see only their own quotations, admins see everything and
+   manage the team's logins. */
+const AUTH_KEY = "reraQuoteAuth";
+let AUTH = null;
+try { AUTH = JSON.parse(localStorage.getItem(AUTH_KEY)); } catch {}
+
+function setAuth(a) {
+  AUTH = a;
+  if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a));
+  else localStorage.removeItem(AUTH_KEY);
+  updateAuthUi();
+}
+
+function updateAuthUi() {
+  const chip = $("authChip");
+  if (chip) {
+    chip.style.display = AUTH ? "" : "none";
+    chip.textContent = AUTH ? `Hey, ${AUTH.name}` : "";
+  }
+  const users = $("btnUsers");
+  if (users) users.style.display = AUTH && AUTH.role === "admin" ? "" : "none";
+  const out = $("btnLogout");
+  if (out) out.style.display = AUTH ? "" : "none";
+}
+
+function showLogin() {
+  const ov = $("loginOverlay");
+  if (ov) {
+    ov.style.display = "flex";
+    setTimeout(() => $("loginUser")?.focus(), 50);
+  }
+}
+function hideLogin() {
+  const ov = $("loginOverlay");
+  if (ov) ov.style.display = "none";
+}
+
+async function doLogin() {
+  const err = $("loginErr");
+  err.textContent = "";
+  const btn = $("btnLogin");
+  btn.disabled = true;
+  try {
+    const data = await Store._post({
+      action: "login",
+      username: $("loginUser").value.trim(),
+      password: $("loginPass").value,
+    });
+    setAuth(data);
+    hideLogin();
+    $("loginPass").value = "";
+    renderSavedList();
+  } catch (e) {
+    err.textContent = e.message === "Please sign in" ? "Wrong username or password" : e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function doLogout() {
+  setAuth(null);
+  showLogin();
+}
+
+/* admin-only: list the team and add/update logins */
+async function openUsers() {
+  $("usersOverlay").style.display = "flex";
+  renderUsersList(null);
+  try {
+    const data = await Store._post({ action: "listUsers" });
+    renderUsersList(data.users || []);
+  } catch (e) {
+    $("nuErr").textContent = e.message;
+  }
+}
+
+function renderUsersList(users) {
+  const ul = $("usersList");
+  if (!users) {
+    ul.innerHTML = "<li class='saved-empty'>Loading…</li>";
+    return;
+  }
+  ul.innerHTML = users.length
+    ? users
+        .map(
+          (u) =>
+            `<li><strong>${escapeHtml(u.name)}</strong> · ${escapeHtml(u.username)} · ${u.role}${u.active ? "" : " · disabled"}</li>`
+        )
+        .join("")
+    : "<li class='saved-empty'>No users yet.</li>";
+}
+
+async function createUser() {
+  const err = $("nuErr");
+  err.textContent = "";
+  const btn = $("btnCreateUser");
+  btn.disabled = true;
+  try {
+    const data = await Store._post({
+      action: "createUser",
+      user: {
+        username: $("nuUser").value.trim(),
+        name: $("nuName").value.trim(),
+        password: $("nuPass").value,
+        role: $("nuRole").value,
+      },
+    });
+    renderUsersList(data.users || []);
+    $("nuUser").value = $("nuName").value = $("nuPass").value = "";
+  } catch (e) {
+    err.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 /* inline SVG icons (Lucide-style) reused by generated markup */
 const SVG = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
 const ICON_X = SVG + '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
@@ -83,10 +201,29 @@ const Store = {
     return "QT" + String(max + 1).padStart(4, "0");
   },
 
+  // every authed call goes through here — a rejected token clears the
+  // session and brings the sign-in screen back
+  async _post(payload) {
+    const res = await fetch(SHEET_API_URL, {
+      method: "POST",
+      // text/plain keeps it a "simple" request → no CORS preflight
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      redirect: "follow",
+      body: JSON.stringify({ ...payload, token: AUTH && AUTH.token }),
+    });
+    const data = await res.json();
+    if (data.error === "auth") {
+      setAuth(null);
+      showLogin();
+      throw new Error("Please sign in");
+    }
+    if (data.error) throw new Error(data.error);
+    return data;
+  },
+
   async list() {
     if (!this.remote()) return this._local();
-    const res = await fetch(SHEET_API_URL + "?action=list", { redirect: "follow" });
-    const data = await res.json();
+    const data = await this._post({ action: "list" });
     return data.quotations || [];
   },
 
@@ -115,15 +252,7 @@ const Store = {
       this._localWrite(all);
       return record;
     }
-    const res = await fetch(SHEET_API_URL, {
-      method: "POST",
-      // text/plain keeps it a "simple" request → no CORS preflight
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      redirect: "follow",
-      body: JSON.stringify({ action: "save", record }),
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
+    const data = await this._post({ action: "save", record });
     return data.record;
   },
 
@@ -132,12 +261,7 @@ const Store = {
       this._localWrite(this._local().filter((q) => q.quoteNo !== quoteNo));
       return;
     }
-    await fetch(SHEET_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      redirect: "follow",
-      body: JSON.stringify({ action: "delete", quoteNo }),
-    });
+    await this._post({ action: "delete", quoteNo });
   },
 };
 
@@ -2969,6 +3093,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("btnAddRow").addEventListener("click", () => addCustomCard());
   $("btnUndo").addEventListener("click", undo);
   $("btnSave").addEventListener("click", saveQuotation);
+
+  // login gate + team management (remote mode only)
+  updateAuthUi();
+  if (Store.remote() && !AUTH) showLogin();
+  $("btnLogin")?.addEventListener("click", doLogin);
+  $("loginPass")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doLogin();
+  });
+  $("loginUser")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $("loginPass").focus();
+  });
+  $("btnLogout")?.addEventListener("click", doLogout);
+  $("btnUsers")?.addEventListener("click", openUsers);
+  $("btnCloseUsers")?.addEventListener("click", () => ($("usersOverlay").style.display = "none"));
+  $("btnCreateUser")?.addEventListener("click", createUser);
   $("btnNew").addEventListener("click", newQuotation);
   $("btnHistory").addEventListener("click", openDrawer);
   $("btnCloseDrawer").addEventListener("click", closeDrawer);
