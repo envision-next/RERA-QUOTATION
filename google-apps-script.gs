@@ -150,6 +150,24 @@ function findUserRow(username) {
   return null;
 }
 
+// several devices can stay signed in at once: the token cell holds a
+// JSON list of {t: token, e: expiry}. Old plain-uuid cells (from the
+// single-session version) are still recognised.
+var MAX_SESSIONS = 6;
+
+function parseTokens(cell, legacyExp) {
+  var s = String(cell || "");
+  if (s.charAt(0) === "[") {
+    try { return JSON.parse(s); } catch (err) { return []; }
+  }
+  return s ? [{ t: s, e: Number(legacyExp) || 0 }] : [];
+}
+
+function liveTokens(list) {
+  var now = Date.now();
+  return list.filter(function (x) { return x && x.t && Number(x.e) > now; });
+}
+
 function login(username, password) {
   if (!username || !password) return { error: "Enter username and password" };
   var hit = findUserRow(username);
@@ -160,9 +178,12 @@ function login(username, password) {
 
   var token = Utilities.getUuid();
   var exp = Date.now() + TOKEN_DAYS * 24 * 60 * 60 * 1000;
+  var list = liveTokens(parseTokens(hit.user.token, hit.user.tokenExp));
+  list.push({ t: token, e: exp });
+  if (list.length > MAX_SESSIONS) list = list.slice(list.length - MAX_SESSIONS);
   var sh = usersSheet();
-  sh.getRange(hit.index, USERS_HEADER.indexOf("token") + 1).setValue(token);
-  sh.getRange(hit.index, USERS_HEADER.indexOf("tokenExp") + 1).setValue(exp);
+  sh.getRange(hit.index, USERS_HEADER.indexOf("token") + 1).setValue(JSON.stringify(list));
+  sh.getRange(hit.index, USERS_HEADER.indexOf("tokenExp") + 1).setValue("");
   return { token: token, username: hit.user.username, name: hit.user.name, role: hit.user.role };
 }
 
@@ -170,12 +191,15 @@ function auth(token) {
   if (!token) return null;
   var rows = userRows();
   var ti = USERS_HEADER.indexOf("token");
+  var ei = USERS_HEADER.indexOf("tokenExp");
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][ti] === token) {
-      var u = rowToUser(rows[i]);
-      if (Number(u.tokenExp) < Date.now()) return null;
-      if (String(u.active) === "false" || u.active === false) return null;
-      return u;
+    var list = liveTokens(parseTokens(rows[i][ti], rows[i][ei]));
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].t === token) {
+        var u = rowToUser(rows[i]);
+        if (String(u.active) === "false" || u.active === false) return null;
+        return u;
+      }
     }
   }
   return null;
