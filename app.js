@@ -1819,8 +1819,7 @@ function recalc() {
   if (oneTime > 0 && yearly > 0) {
     feeEl.innerHTML =
       `<div class="fee-line"><span>Other Services</span><b>₹${fmt0(oneTimeFee)}/-</b></div>` +
-      `<div class="fee-line"><span>Package (Per Year)</span><b>₹${fmt0(yearlyFee)}/-</b></div>` +
-      `<div class="fee-line fee-line-total"><span>Total</span><b>₹${fmt0(oneTimeFee + yearlyFee)}/-</b></div>`;
+      `<div class="fee-line"><span>Package (Per Year)</span><b>₹${fmt0(yearlyFee)}/-</b></div>`;
   } else {
     feeEl.textContent = "₹" + fmt0(primaryFee) + "/-";
   }
@@ -1839,7 +1838,7 @@ function recalc() {
   document.querySelector(".fee-box")?.classList.toggle("grand", grandMode);
   if ($("feeLabel"))
     $("feeLabel").textContent = grandMode
-      ? "Grand Total"
+      ? "Payment Summary"
       : oneTime === 0 && yearly > 0
         ? "Professional Fee (Yearly)"
         : "Professional Fee";
