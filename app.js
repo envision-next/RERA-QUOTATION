@@ -1916,18 +1916,16 @@ function recalc() {
           amt: govTotal(k),
         }))
         .filter((l) => l.amt > 0);
-      if (grandMode && govLines.length > 1) {
-        gEl.classList.add("fee-combined");
-        gEl.innerHTML = govLines
-          .map(
-            (l) =>
-              `<div class="fee-line"><span>${escapeHtml(l.name)}</span><b>₹${fmt0(l.amt)}/-</b></div>`
-          )
-          .join("");
-      } else {
-        gEl.classList.remove("fee-combined");
-        gEl.textContent = "₹" + fmt0(gov) + "/-";
-      }
+      // always the same row style as the Payment Summary — name left,
+      // amount right; a lone big figure looked stranded
+      gEl.classList.add("fee-combined");
+      const govRows = govLines.length ? govLines : [{ name: "Government Fees", amt: gov }];
+      gEl.innerHTML = govRows
+        .map(
+          (l) =>
+            `<div class="fee-line"><span>${escapeHtml(l.name)}</span><b>₹${fmt0(l.amt)}/-</b></div>`
+        )
+        .join("");
     } else {
       govBox.style.display = "none";
     }
