@@ -1644,8 +1644,11 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   border: 1px solid #e5e9f0;
   border-radius: 9px;
 }
-.users-list li { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #eef1f6; }
+.users-list { background: #f7f9fc; }
+.users-list li { padding: 8px 12px; font-size: 13px; color: #333; border-bottom: 1px solid #e5e9f0; }
+.users-list li strong { color: #111; }
 .users-list li:last-child { border-bottom: none; }
+.users-sub { margin: 4px 0 0; font-weight: 700; color: #444; }
 .users-card .login-sub { text-align: left; }
 /* ghost buttons are styled for the dark appbar — on the white card
    they'd be invisible */
