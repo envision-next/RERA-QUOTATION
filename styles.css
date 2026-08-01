@@ -1493,15 +1493,19 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-note { margin-top: 3px; font-size: 11.5px; color: var(--gold-deep); }
 .fee-words { margin-top: 6px; font-size: 11.5px; font-style: italic; color: #6b7280; }
 .fee-amount { font-size: 27px; font-weight: 800; color: #111; white-space: nowrap; }
-/* GRAND TOTAL look (2+ offerings): dark box, gold accents — clearly
-   different from the cream per-offering strips */
-.fee-box.grand { background: #141414; border-left-color: var(--gold, #e9b308); }
-.fee-box.grand .fee-label { color: var(--gold, #e9b308); }
-.fee-box.grand .fee-note { color: #cbb26a; }
-.fee-box.grand .fee-words { color: #ddd; }
-.fee-box.grand .fee-amount { color: #fff; }
-.fee-box.grand .fee-line b { color: #fff; }
-.fee-box.grand .fee-line span { color: var(--gold, #e9b308); }
+/* Payment Summary look (2+ offerings): light gold wash — blends with
+   the theme yet reads stronger than the cream per-offering strips */
+.fee-box.grand {
+  background: linear-gradient(135deg, #fdf4d7, #faeab4);
+  border: 1.5px solid rgba(233, 179, 8, .55);
+  border-left: 4px solid var(--gold, #e9b308);
+}
+.fee-box.grand .fee-label { color: #8a6a06; }
+.fee-box.grand .fee-note { color: #8a7a45; }
+.fee-box.grand .fee-words { color: #6b7280; }
+.fee-box.grand .fee-amount { color: #111; }
+.fee-box.grand .fee-line b { color: #111; }
+.fee-box.grand .fee-line span { color: #8a6a06; }
 
 /* combined one-time + yearly total: two labelled lines, right aligned */
 .fee-amount.fee-combined { font-size: 19px; white-space: normal; text-align: right; }
@@ -1527,8 +1531,8 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-combined .fee-line-gov span { font-size: 11px; font-weight: 700; color: #6b5310; }
 .fee-amount .fee-line-gov b,
 .fee-combined .fee-line-gov b { font-size: 17px; font-weight: 800; color: #111; }
-.fee-box.grand .fee-line-gov span { color: var(--gold, #e9b308); }
-.fee-box.grand .fee-line-gov b { color: #fff; }
+.fee-box.grand .fee-line-gov span { color: #8a6a06; }
+.fee-box.grand .fee-line-gov b { color: #111; }
 .fee-right { text-align: right; }
 .fee-yearly { font-size: 12px; font-weight: 700; color: var(--gold-deep, #a16207); margin-top: 4px; }
 
