@@ -24,6 +24,10 @@
  *      (Team Logins ▸ re-save "admin" with a new password).
  ************************************************************/
 
+// bump on every server change — lets the app (and diagnostics) see
+// which version is actually deployed
+var SCRIPT_VERSION = 7;
+
 var SHEET_NAME  = "Quotations";
 var USERS_NAME  = "Users";
 var COUNTER_KEY = "quoteCounter";
@@ -53,6 +57,7 @@ var USERS_HEADER = [
 
 function doGet(e) {
   var action = (e && e.parameter && e.parameter.action) || "";
+  if (action === "version") return json({ version: SCRIPT_VERSION });
   if (action === "next") return json({ quoteNo: peekNext() });
   // data never leaves without a token — use POST {action:"list", token}
   return json({ error: "auth" });

@@ -163,7 +163,7 @@ async function checkSession() {
 }
 function startSessionWatch() {
   if (!Store.remote()) return;
-  setInterval(checkSession, 30000);
+  setInterval(checkSession, 15000);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") checkSession();
   });
