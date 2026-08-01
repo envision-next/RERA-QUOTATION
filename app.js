@@ -1867,12 +1867,12 @@ function recalc() {
   }
   $("feeGstPct").textContent = taxRate;
   $("feeDiscNote").textContent = discountRate > 0 ? ` · Includes ${discountRate}% discount` : "";
-  $("amountWords").textContent =
-    primaryFee > 0 ? "Rupees " + numberToWords(Math.round(primaryFee)) + " Only" : "-";
-  // with several offerings the closing box is the GRAND total — give
-  // it a distinct dark look so it can't be confused with the
-  // per-offering strips above it
+  // with several offerings the closing box is the Payment Summary —
+  // lighter gold look, no amount-in-words line
   const grandMode = selectedKeys().length >= 2;
+  $("amountWords").textContent =
+    !grandMode && primaryFee > 0 ? "Rupees " + numberToWords(Math.round(primaryFee)) + " Only" : "";
+  $("amountWords").style.display = grandMode ? "none" : "";
   document.querySelector(".fee-box")?.classList.toggle("grand", grandMode);
   if ($("feeLabel"))
     $("feeLabel").textContent = grandMode
