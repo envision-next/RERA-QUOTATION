@@ -2506,7 +2506,24 @@ function trySplitCard(card, remaining) {
   return cont;
 }
 
+/* re-packing detaches and re-appends every block, which blurs the
+   focused element and fires focusout on the container — without the
+   PAGINATING guard that focusout schedules ANOTHER repack, looping
+   forever and dragging the scroll with it. The wrapper also pins the
+   scroll position so an add-button click can't jump the viewport. */
+let PAGINATING = false;
 function repaginate() {
+  PAGINATING = true;
+  const sx = window.scrollX, sy = window.scrollY;
+  try {
+    repaginateCore();
+  } finally {
+    PAGINATING = false;
+    window.scrollTo(sx, sy);
+  }
+}
+
+function repaginateCore() {
   const container = $("pagesContainer");
   const first = $("quotationSheet");
   const focusCard =
@@ -2942,6 +2959,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("load", schedulePaginate);
   window.addEventListener("resize", schedulePaginate);
   window.addEventListener("beforeprint", repaginate);
-  $("pagesContainer").addEventListener("focusout", schedulePaginate);
+  $("pagesContainer").addEventListener("focusout", () => {
+    if (!PAGINATING) schedulePaginate();
+  });
   schedulePaginate();
 });
