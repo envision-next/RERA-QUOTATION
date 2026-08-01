@@ -1849,12 +1849,51 @@ function recalc() {
   const tax = totalFee * (taxRate / 100);
   const grand = totalFee + tax;
 
-  // grand total: one-time total + package total marked "per Year",
-  // shown together in the fee box
+  // Payment Summary (2+ offerings): one line per billed item — each
+  // offering's own fee plus each custom item under its own name;
+  // single offering keeps the plain amount
+  const keys = selectedKeys();
+  const grandMode = keys.length >= 2;
   const primaryFee = oneTime > 0 ? oneTimeFee : yearlyFee;
   const feeEl = $("tFee");
-  feeEl.classList.toggle("fee-combined", oneTime > 0 && yearly > 0);
-  if (oneTime > 0 && yearly > 0) {
+  const customLine = (c) => {
+    if (c.dataset.included === "1") return null; // "Included in our scope"
+    return {
+      name: c.querySelector(".i-desc")?.value.trim() || "Custom item",
+      amt: parseAmt(c.querySelector(".i-amt")?.value),
+      yr: c.dataset.yearly === "1",
+    };
+  };
+  feeEl.classList.toggle("fee-combined", grandMode || (oneTime > 0 && yearly > 0));
+  if (grandMode) {
+    const lines = [];
+    keys.forEach((k) => {
+      lines.push({
+        name:
+          offeringHead(k)?.querySelector(".offering-title")?.innerText.trim() ||
+          SHORT_TITLES[k] || CATALOGUE[k].label,
+        amt: CATALOGUE[k].sections
+          ? serviceTotal(k)
+          : serviceCard(k)
+            ? parseAmt(serviceCard(k).querySelector(".i-amt").value)
+            : 0,
+        yr: isYearly(k),
+      });
+      document
+        .querySelectorAll(`.svc-card.custom-card[data-parent="${k}"]:not(.gov-card)`)
+        .forEach((c) => lines.push(customLine(c)));
+    });
+    document
+      .querySelectorAll(".svc-card.custom-card:not([data-parent]):not(.gov-card)")
+      .forEach((c) => lines.push(customLine(c)));
+    feeEl.innerHTML = lines
+      .filter(Boolean)
+      .map(
+        (l) =>
+          `<div class="fee-line"><span>${escapeHtml(l.name)}${l.yr ? " (Per Year)" : ""}</span><b>₹${fmt0(l.amt)}/-</b></div>`
+      )
+      .join("");
+  } else if (oneTime > 0 && yearly > 0) {
     feeEl.innerHTML =
       `<div class="fee-line"><span>Other Services</span><b>₹${fmt0(oneTimeFee)}/-</b></div>` +
       `<div class="fee-line"><span>Package (Per Year)</span><b>₹${fmt0(yearlyFee)}/-</b></div>`;
@@ -1869,7 +1908,6 @@ function recalc() {
   $("feeDiscNote").textContent = discountRate > 0 ? ` · Includes ${discountRate}% discount` : "";
   // with several offerings the closing box is the Payment Summary —
   // lighter gold look, no amount-in-words line
-  const grandMode = selectedKeys().length >= 2;
   $("amountWords").textContent =
     !grandMode && primaryFee > 0 ? "Rupees " + numberToWords(Math.round(primaryFee)) + " Only" : "";
   $("amountWords").style.display = grandMode ? "none" : "";
