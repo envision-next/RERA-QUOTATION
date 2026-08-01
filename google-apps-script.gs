@@ -86,6 +86,9 @@ function doPost(e) {
     return json({ quotations: all, me: publicUser(user) });
   }
 
+  if (body.action === "changePassword")
+    return json(changePassword(user, body.oldPassword, body.newPassword));
+
   if (body.action === "listUsers") {
     if (user.role !== "admin") return json({ error: "auth" });
     return json({ users: listUsers() });
@@ -220,6 +223,21 @@ function upsertUser(u) {
   if (hit) sh.getRange(hit.index, 1, 1, row.length).setValues([row]);
   else sh.appendRow(row);
   return { ok: true, users: listUsers() };
+}
+
+// any signed-in user can change their own password (old one required)
+function changePassword(user, oldPass, newPass) {
+  if (!newPass || String(newPass).length < 4)
+    return { error: "New password must be at least 4 characters" };
+  var hit = findUserRow(user.username);
+  if (!hit) return { error: "auth" };
+  if (hashPass(hit.user.salt, oldPass) !== hit.user.passwordHash)
+    return { error: "Current password is wrong" };
+  var salt = Utilities.getUuid();
+  var sh = usersSheet();
+  sh.getRange(hit.index, USERS_HEADER.indexOf("salt") + 1).setValue(salt);
+  sh.getRange(hit.index, USERS_HEADER.indexOf("passwordHash") + 1).setValue(hashPass(salt, newPass));
+  return { ok: true };
 }
 
 /* Run ONCE from the editor after pasting: creates admin / admin123.

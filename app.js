@@ -72,6 +72,40 @@ function updateAuthUi() {
   if (users) users.style.display = AUTH && AUTH.role === "admin" ? "" : "none";
   const out = $("btnLogout");
   if (out) out.style.display = AUTH ? "" : "none";
+  const pass = $("btnPass");
+  if (pass) pass.style.display = AUTH ? "" : "none";
+}
+
+/* self-service password change (old password required) */
+function openPass() {
+  $("cpOld").value = $("cpNew").value = $("cpNew2").value = "";
+  $("cpErr").textContent = "";
+  $("passWho").textContent = AUTH ? `Signed in as ${AUTH.name} (${AUTH.username})` : "";
+  $("passOverlay").style.display = "flex";
+  setTimeout(() => $("cpOld").focus(), 50);
+}
+
+async function doChangePassword() {
+  const err = $("cpErr");
+  err.textContent = "";
+  if ($("cpNew").value !== $("cpNew2").value) {
+    err.textContent = "New passwords do not match";
+    return;
+  }
+  const btn = $("btnPassSave");
+  btn.disabled = true;
+  try {
+    await Store._post({
+      action: "changePassword",
+      oldPassword: $("cpOld").value,
+      newPassword: $("cpNew").value,
+    });
+    $("passOverlay").style.display = "none";
+  } catch (e) {
+    err.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function showLogin() {
@@ -3110,7 +3144,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("btnCloseUsers")?.addEventListener("click", closeUsers);
   $("btnUsersBack")?.addEventListener("click", closeUsers);
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeUsers();
+    if (e.key === "Escape") {
+      closeUsers();
+      $("passOverlay").style.display = "none";
+    }
+  });
+  $("btnPass")?.addEventListener("click", openPass);
+  $("btnPassBack")?.addEventListener("click", () => ($("passOverlay").style.display = "none"));
+  $("btnPassSave")?.addEventListener("click", doChangePassword);
+  $("cpNew2")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doChangePassword();
   });
   $("btnCreateUser")?.addEventListener("click", createUser);
   $("btnNew").addEventListener("click", newQuotation);
