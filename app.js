@@ -955,22 +955,12 @@ function renderServicePicker() {
           <span class="svc-name" title="${escapeAttr(CATALOGUE[key].label)}">${escapeHtml(CATALOGUE[key].label)}</span>
         </label>
         <input type="text" class="svc-amt" data-key="${key}" inputmode="decimal" hidden>
-        ${CATALOGUE[key].sections
-          ? `<button class="svc-sub-btn" title="Section prices"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>`
-          : `<button class="svc-flip" title="Switch between a price and Included in our scope">${ICON_SWAP}</button>`}
+        ${CATALOGUE[key].sections ? `<button class="svc-sub-btn" title="Section prices"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>` : ""}
       `;
       host.appendChild(row);
 
       const check = row.querySelector(".svc-check");
       const amt = row.querySelector(".svc-amt");
-
-      // single-price services: the price/Included flip lives here too
-      row.querySelector(".svc-flip")?.addEventListener("click", () => {
-        const card = serviceCard(key);
-        if (!card) return;
-        toggleServicePill(card, key); // updates pill, panel amount, totals
-        amt.disabled = card.dataset.included === "1";
-      });
 
       // sectioned offerings: prices are edited HERE, per section, via a
       // dropdown — the preview pills are read-only
