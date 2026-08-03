@@ -2880,7 +2880,11 @@ function trySplitCard(card, remaining) {
     if (li.getBoundingClientRect().bottom - top + 18 > remaining) break;
     fit++;
   }
-  if (fit < 1 || fit >= lis.length) return null;
+  if (fit < 1) return null;
+  // we are only called when the WHOLE card did not fit — if every row
+  // individually fits, the card's own padding/margin is what overflows,
+  // so still split: carry the last row over instead of the whole card
+  if (fit >= lis.length) fit = lis.length - 1;
 
   const base = parseInt((ol.style.counterReset || "scope 0").split(" ")[1] || "0", 10);
   const cont = document.createElement("div");
