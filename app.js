@@ -431,8 +431,10 @@ const PKG_QPR = [
   "Updation of Cost details (Incurred)",
   "Updation of Inventory Details, Building Details, Project Details, & Status",
   "Filing of QPR Report to MahaRERA on quarterly basis",
-  "Preparation of Draft of Form 1, Form 2 & Form 3 with basic Project Details excluding Professional findings such as Physical / Financial / Technical Values & Certification",
 ];
+// Package A only: B-D include certified forms elsewhere, A gets drafts
+const PKG_QPR_DRAFTS =
+  "Preparation of Draft of Form 1, Form 2 & Form 3 with basic Project Details excluding Professional findings such as Physical / Financial / Technical Values & Certification";
 const PKG_PROFILE = [
   "Uploading of amended/revised permissions from the local planning authority",
   "Updation of parking details",
@@ -689,7 +691,7 @@ const CATALOGUE = {
         price: 75000,
         items: [...PKG_ADVISORY_6, "Implementation of Consents from Allottees"],
       },
-      { title: "Quarterly Progress Reports", price: null, items: PKG_QPR },
+      { title: "Quarterly Progress Reports", price: null, items: [...PKG_QPR, PKG_QPR_DRAFTS] },
       { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
     ],
     exclusions: PKG_EXCL_A,
