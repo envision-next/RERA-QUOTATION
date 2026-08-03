@@ -279,15 +279,35 @@ const Store = {
 
   // every authed call goes through here — a rejected token clears the
   // session and brings the sign-in screen back
-  async _post(payload) {
+  async _send(body) {
     const res = await fetch(SHEET_API_URL, {
       method: "POST",
       // text/plain keeps it a "simple" request → no CORS preflight
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       redirect: "follow",
-      body: JSON.stringify({ ...payload, token: AUTH && AUTH.token }),
+      body: JSON.stringify(body),
     });
-    const data = await res.json();
+    return res.json();
+  },
+
+  async _post(payload) {
+    let data = await this._send({ ...payload, token: AUTH && AUTH.token });
+    // Apps Script's POST redirect occasionally glitches and the reply
+    // falls through to the GET handler, which used to answer "auth"
+    // even for a live token — never log out on the FIRST auth answer;
+    // re-verify the session, and only a confirmed rejection signs out
+    if (data.error === "auth" && payload.action !== "login" && AUTH) {
+      await new Promise((r) => setTimeout(r, 800));
+      let check = null;
+      try {
+        check = await this._send({ action: "me", token: AUTH.token });
+      } catch (e) {
+        throw new Error("Network hiccup - please try again"); // no logout
+      }
+      if (check && !check.error) {
+        data = await this._send({ ...payload, token: AUTH.token }); // session fine — retry once
+      }
+    }
     if (data.error === "auth") {
       // another tab of this browser may have signed in meanwhile and
       // written a fresh token — adopt it instead of wiping it

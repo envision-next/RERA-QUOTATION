@@ -26,7 +26,7 @@
 
 // bump on every server change — lets the app (and diagnostics) see
 // which version is actually deployed
-var SCRIPT_VERSION = 7;
+var SCRIPT_VERSION = 8;
 
 var SHEET_NAME  = "Quotations";
 var USERS_NAME  = "Users";
@@ -59,8 +59,10 @@ function doGet(e) {
   var action = (e && e.parameter && e.parameter.action) || "";
   if (action === "version") return json({ version: SCRIPT_VERSION });
   if (action === "next") return json({ quoteNo: peekNext() });
-  // data never leaves without a token — use POST {action:"list", token}
-  return json({ error: "auth" });
+  // data never leaves without a token — use POST {action:"list", token}.
+  // NOT "auth": a glitched POST redirect can land here, and "auth"
+  // would make the app sign the user out for no reason.
+  return json({ error: "badrequest" });
 }
 
 function doPost(e) {
