@@ -474,6 +474,13 @@ function resetAll() {
   }
 }
 
+/* Run ONCE from the editor: numbering jumps so the NEXT saved
+   quotation is QT1000 (then QT1001, ...). Existing rows keep their
+   numbers. */
+function startFrom1000() {
+  PropertiesService.getScriptProperties().setProperty(COUNTER_KEY, "999");
+}
+
 /* ---------- tiny utils ---------- */
 
 function pad(n) {
