@@ -1223,7 +1223,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .prop-topbar .logo-img { height: 102px; margin-top: -27px; margin-bottom: -27px; margin-left: -0.25cm; }
 /* footer logo renders double size in the same 26px of layout, so
    the footer strip keeps its height */
-.logo-sm { height: 52px; margin-top: -13px; margin-bottom: -13px; }
+.logo-sm { height: 54px; margin-top: -14px; margin-bottom: -14px; }
 
 /* wordmark goes black + gold on the proposal */
 .proposal .wordmark { color: #111; margin-bottom: 0; }
