@@ -2748,6 +2748,12 @@ function filteredRecords() {
 function renderAnalytics() {
   if (!$("paneAnalytics")) return;
   const recs = filteredRecords();
+  // empty state: hide the chart grid, show a friendly note
+  const empty = recs.length === 0;
+  const grid = document.querySelector(".an-grid");
+  if (grid) grid.hidden = empty;
+  const emptyEl = $("anEmpty");
+  if (emptyEl) emptyEl.hidden = !empty;
   const total = recs.reduce((s, r) => s + recTotal(r), 0);
   $("stCount").textContent = recs.length;
   $("stValue").textContent = "₹ " + fmt0(total);
