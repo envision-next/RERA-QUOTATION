@@ -955,11 +955,33 @@ function renderServicePicker() {
           <span class="svc-name" title="${escapeAttr(CATALOGUE[key].label)}">${escapeHtml(CATALOGUE[key].label)}</span>
         </label>
         <input type="text" class="svc-amt" data-key="${key}" inputmode="decimal" hidden>
+        ${CATALOGUE[key].sections ? `<button class="svc-sub-btn" title="Section prices"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>` : ""}
       `;
       host.appendChild(row);
 
       const check = row.querySelector(".svc-check");
       const amt = row.querySelector(".svc-amt");
+
+      // sectioned offerings: prices are edited HERE, per section, via a
+      // dropdown — the preview pills are read-only
+      const subBtn = row.querySelector(".svc-sub-btn");
+      if (subBtn) {
+        const subs = document.createElement("div");
+        subs.className = "svc-subs";
+        subs.hidden = true;
+        host.appendChild(subs);
+        subBtn.addEventListener("click", () => {
+          subs.hidden = !subs.hidden;
+          subBtn.classList.toggle("open", !subs.hidden);
+          if (!subs.hidden) buildSubRows(key, subs);
+        });
+        check.addEventListener("change", () => {
+          if (!check.checked) {
+            subs.hidden = true;
+            subBtn.classList.remove("open");
+          }
+        });
+      }
 
       check.addEventListener("change", () => {
         if (check.checked) selectService(key, RATES.amounts[key]);
@@ -1021,6 +1043,43 @@ function renderServicePicker() {
       refreshOtherServices();
     });
   });
+}
+
+/* the sidebar dropdown listing an offering's sections: priced ones get
+   an input that drives the read-only preview pill; the offering total
+   follows as the sum (no rebalancing here — direct control) */
+function buildSubRows(key, hostEl) {
+  hostEl.innerHTML = "";
+  const secs = CATALOGUE[key].sections || [];
+  document
+    .querySelectorAll(`.svc-card:not(.svc-cont)[data-key="${key}"]`)
+    .forEach((card) => {
+      const title = (secs[parseInt(card.dataset.sec, 10)] || {}).title || "Section";
+      const inp = card.querySelector('input.i-amt:not([type="hidden"])');
+      const r = document.createElement("div");
+      r.className = "svc-sub-row";
+      if (inp) {
+        r.innerHTML = `<span class="svc-sub-name" title="${escapeAttr(title)}">${escapeHtml(title)}</span><input type="text" class="svc-sub-amt" inputmode="decimal" value="${fmt0(parseAmt(inp.value))}">`;
+        const si = r.querySelector("input");
+        si.addEventListener("input", () => {
+          inp.value = si.value;
+          const pa = panelAmtInput(key);
+          if (pa) pa.value = fmt0(serviceTotal(key));
+          recalc();
+        });
+        si.addEventListener("focus", () => (si.value = parseAmt(si.value) || ""));
+        si.addEventListener("blur", () => {
+          si.value = fmt0(parseAmt(si.value));
+          inp.value = si.value;
+          setTimeout(recalc, 0);
+        });
+      } else {
+        r.innerHTML = `<span class="svc-sub-name" title="${escapeAttr(title)}">${escapeHtml(title)}</span><span class="svc-sub-inc">Included</span>`;
+      }
+      hostEl.appendChild(r);
+    });
+  if (!hostEl.children.length)
+    hostEl.innerHTML = `<div class="svc-sub-row"><span class="svc-sub-inc">Select the service first</span></div>`;
 }
 
 function panelRow(key) {
@@ -1320,7 +1379,7 @@ function addServiceCard(key, amount, subText, customAmt, included) {
   if (included) card.dataset.included = "1";
   const pill = included
     ? `<div class="card-pill card-pill-outline">Included in our scope</div><input type="hidden" class="i-amt" value="0">`
-    : `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount)}"><span>/-</span></div>`;
+    : `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount)}" readonly><span>/-</span></div>`;
   card.innerHTML = `
     <div class="card-head">
       <div class="card-title" contenteditable="true" spellcheck="false">${escapeHtml(CATALOGUE[key].label)}</div>
@@ -1422,7 +1481,7 @@ function toggleServicePill(card, key) {
     card.querySelector('input.i-amt[type="hidden"]')?.remove();
     const amt = parseAmt(card.dataset.lastAmt || "0") || RATES.amounts[key] || 0;
     card.querySelector(".card-pill").outerHTML =
-      `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amt)}"><span>/-</span></div>`;
+      `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amt)}" readonly><span>/-</span></div>`;
     bindServiceAmt(card, key);
   }
   const panelAmt = panelAmtInput(key);
@@ -1486,7 +1545,7 @@ function sectionPillHtml(priced, amount, hidePrice) {
     return `<div class="card-pill card-pill-outline">Included in our scope</div><input type="hidden" class="i-amt" value="${amount || 0}">`;
   }
   return priced
-    ? `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount || 0)}"><span>/-</span></div>`
+    ? `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(amount || 0)}" readonly><span>/-</span></div>`
     : `<div class="card-pill card-pill-outline">Included in our scope</div>`;
 }
 
