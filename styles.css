@@ -1289,8 +1289,8 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 
 /* --- annexure headings --- */
 .prop-annex-head {
-  margin-top: 11mm;
-  margin-bottom: 6mm;
+  margin-top: 7mm;
+  margin-bottom: 4mm;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1313,8 +1313,8 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 
 /* big per-offering heading above each offering's cards */
 .head-hidden { display: none !important; }
-.offering-head { margin-top: 5mm; margin-bottom: 7mm; }   /* clear air before the first card */
-.offering-head .prop-annex-head { margin: 0 0 4mm; }
+.offering-head { margin-top: 3mm; margin-bottom: 4mm; }   /* clear air before the first card */
+.offering-head .prop-annex-head { margin: 0 0 2.5mm; }
 .offering-head .prop-title { margin: 0; }
 
 /* --- Annexure A service cards --- */
@@ -1322,7 +1322,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   overflow: hidden;
-  margin-bottom: 6mm;
+  margin-bottom: 4mm;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 .card-head {
@@ -1331,7 +1331,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   gap: 12px;
   background: #111;
   color: #fff;
-  padding: 11px 16px;
+  padding: 8px 16px;
 }
 .card-title {
   flex: 1;
@@ -1400,16 +1400,16 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 
 .card-list {
   margin: 0;
-  padding: 6px 16px 10px;
+  padding: 3px 16px 6px;
   list-style: none;
   counter-reset: scope;
 }
 .card-list li {
   counter-increment: scope;
   position: relative;
-  padding: 13px 0 13px 34px;   /* clear gap between separator & content */
+  padding: 7px 0 7px 32px;   /* compact rows — keeps quotations short */
   font-size: 12.5px;
-  line-height: 1.6;
+  line-height: 1.45;
   color: #374151;
   border-bottom: 1px solid #f0f1f3;
 }
@@ -1418,7 +1418,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   content: counter(scope);
   position: absolute;
   left: 0;
-  top: 13px;
+  top: 7px;
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -1438,7 +1438,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 
 /* --- Professional Fee box --- */
 .fee-box {
-  margin-top: 7mm;
+  margin-top: 5mm;
   margin-bottom: 18px; /* never glued to the footer */
   background: var(--cream);
   border-left: 4px solid var(--gold);
