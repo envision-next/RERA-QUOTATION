@@ -1058,8 +1058,14 @@ function buildSubRows(key, hostEl) {
       const inp = card.querySelector('input.i-amt:not([type="hidden"])');
       const r = document.createElement("div");
       r.className = "svc-sub-row";
+      // the price <-> "Included in our scope" flip lives HERE now, not
+      // on the preview card
+      const canFlip = !!card.querySelector(".pill-toggle");
+      const flipHtml = canFlip
+        ? `<button class="svc-sub-flip" title="Switch between a price and Included in our scope">${ICON_SWAP}</button>`
+        : "";
       if (inp) {
-        r.innerHTML = `<span class="svc-sub-name" title="${escapeAttr(title)}">${escapeHtml(title)}</span><input type="text" class="svc-sub-amt" inputmode="decimal" value="${fmt0(parseAmt(inp.value))}">`;
+        r.innerHTML = `<span class="svc-sub-name" title="${escapeAttr(title)}">${escapeHtml(title)}</span>${flipHtml}<input type="text" class="svc-sub-amt" inputmode="decimal" value="${fmt0(parseAmt(inp.value))}">`;
         const si = r.querySelector("input");
         si.addEventListener("input", () => {
           inp.value = si.value;
@@ -1074,8 +1080,12 @@ function buildSubRows(key, hostEl) {
           setTimeout(recalc, 0);
         });
       } else {
-        r.innerHTML = `<span class="svc-sub-name" title="${escapeAttr(title)}">${escapeHtml(title)}</span><span class="svc-sub-inc">Included</span>`;
+        r.innerHTML = `<span class="svc-sub-name" title="${escapeAttr(title)}">${escapeHtml(title)}</span>${flipHtml}<span class="svc-sub-inc">Included</span>`;
       }
+      r.querySelector(".svc-sub-flip")?.addEventListener("click", () => {
+        toggleSectionPill(card, key); // updates card, totals, recalc
+        buildSubRows(key, hostEl);    // refresh the dropdown rows
+      });
       hostEl.appendChild(r);
     });
   if (!hostEl.children.length)
