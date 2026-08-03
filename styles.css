@@ -502,9 +502,21 @@ input[readonly] { opacity: .72; cursor: default; }
 
 /* preview prices are display-only — editing happens in the sidebar */
 .card-pill input.i-amt[readonly] { pointer-events: none; }
-/* section cards: the price/Included flip lives in the sidebar dropdown
-   only (custom items keep their on-card toggle) */
-.svc-card[data-sec] .pill-toggle { display: none; }
+/* catalogue cards: the price/Included flip lives in the sidebar only
+   (custom items keep their on-card toggle) */
+.svc-card[data-key] .pill-toggle { display: none; }
+.svc-flip {
+  display: none;
+  flex: none;
+  background: none;
+  border: none;
+  color: #9db4ff;
+  cursor: pointer;
+  padding: 2px;
+}
+.svc-row.on .svc-flip { display: inline-flex; }
+.svc-flip:hover { color: #cdd9ff; }
+.svc-amt:disabled { opacity: .45; }
 .svc-sub-flip {
   flex: none;
   display: inline-flex;

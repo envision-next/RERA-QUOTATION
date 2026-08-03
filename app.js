@@ -955,12 +955,22 @@ function renderServicePicker() {
           <span class="svc-name" title="${escapeAttr(CATALOGUE[key].label)}">${escapeHtml(CATALOGUE[key].label)}</span>
         </label>
         <input type="text" class="svc-amt" data-key="${key}" inputmode="decimal" hidden>
-        ${CATALOGUE[key].sections ? `<button class="svc-sub-btn" title="Section prices"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>` : ""}
+        ${CATALOGUE[key].sections
+          ? `<button class="svc-sub-btn" title="Section prices"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>`
+          : `<button class="svc-flip" title="Switch between a price and Included in our scope">${ICON_SWAP}</button>`}
       `;
       host.appendChild(row);
 
       const check = row.querySelector(".svc-check");
       const amt = row.querySelector(".svc-amt");
+
+      // single-price services: the price/Included flip lives here too
+      row.querySelector(".svc-flip")?.addEventListener("click", () => {
+        const card = serviceCard(key);
+        if (!card) return;
+        toggleServicePill(card, key); // updates pill, panel amount, totals
+        amt.disabled = card.dataset.included === "1";
+      });
 
       // sectioned offerings: prices are edited HERE, per section, via a
       // dropdown — the preview pills are read-only
@@ -1117,6 +1127,7 @@ function selectService(key, amount, subText, customAmt, secs, headText, included
     amt.value = fmt0(serviceTotal(key));
   } else {
     amt.value = fmt0(included ? 0 : amount);
+    amt.disabled = !!included; // price edits come back when flipped to priced
     addServiceCard(key, amount, subText ?? CATALOGUE[key].subs.join("\n"), customAmt, included);
   }
   addOfferingHead(key, headText);
@@ -1164,6 +1175,7 @@ function deselectService(key) {
   check.checked = false;
   panelRow(key).classList.remove("on");
   amt.hidden = true;
+  amt.disabled = false;
   offeringHead(key)?.remove();
   delete REMOVED_SECS[key];
   document.querySelector(`.restore-bar[data-key="${key}"]`)?.remove();
@@ -1617,9 +1629,10 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afte
   card.dataset.key = key;
   card.dataset.sec = String(secIdx);
   card.dataset.uid = String(++CARD_UID);
-  // registration & individual sections can flip between a price and
-  // "Included in our scope"; package sections keep their fixed setup
-  const canToggle = !isYearly(key) && !hidePrice;
+  // every section can flip between a price and "Included in our
+  // scope" (via the sidebar dropdown) — except hidden-price sections,
+  // which carry the package fee
+  const canToggle = !hidePrice;
   card.innerHTML = `
     <div class="card-head">
       <button class="drag-handle no-print" title="Drag to reorder within this offering">${ICON_GRIP}</button>
