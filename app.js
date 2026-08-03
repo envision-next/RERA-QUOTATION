@@ -715,7 +715,9 @@ const CATALOGUE = {
         ],
       },
       { title: "Quarterly Progress Reports", price: null, items: PKG_QPR },
-      { title: "Professional Certifications", price: null, items: PKG_CERTS },
+      // Package B skips the construction-cost estimates line; C & D
+      // carry the full certifications list
+      { title: "Professional Certifications", price: null, items: PKG_CERTS.slice(1) },
       { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
     ],
     exclusions: PKG_EXCL_B,
