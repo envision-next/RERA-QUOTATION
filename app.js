@@ -426,12 +426,12 @@ const PKG_QPR = [
   "Vetting of Form 1 (Architect Certificate) as per Annexure A (Regulation 3)",
   "Vetting of Form 2 (Engineer Certificate) as per Annexure B (Regulation 3)",
   "Vetting of Form 3 (CA Certificate) as per Annexure D (Regulation 3)",
-  "Drafting of Disclosure of Sold/Unsold Inventory as per Circular 29",
+  "Drafting of Disclosure of Sold/Unsold Inventory as per Circular 29 For Non Migrated Projects",
   "Updation of Work Progress and Development work",
-  "Updation of Cost details (Estimated and Incurred)",
-  "Updation of Inventory Details, Building Details, Project Details, FSI Details & Status",
-  "Updation of Professional details including Channel Partner, Contractors and others",
+  "Updation of Cost details (Incurred)",
+  "Updation of Inventory Details, Building Details, Project Details, & Status",
   "Filing of QPR Report to MahaRERA on quarterly basis",
+  "Preparation of Draft of Form 1, Form 2 & Form 3 with basic Project Details excluding Professional findings such as Physical / Financial / Technical Values",
 ];
 const PKG_PROFILE = [
   "Updation of amended/revised permissions from the local planning authority",
