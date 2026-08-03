@@ -3239,6 +3239,27 @@ function buildWordHtml() {
   );
 }
 
+/* opens the user's email app with a prefilled draft — the PDF itself
+   can't ride along in a mailto link, so the body reminds the sender
+   to attach the exported file */
+function shareByEmail() {
+  const quoteNo = $("quoteNo").value.trim() || "our quotation";
+  const custName = $("custName").value.trim();
+  const projName = $("projName").value.trim();
+  const subject = `Quotation ${quoteNo} - RERA Easy${projName ? " - " + projName : ""}`;
+  const body =
+    `Dear ${custName || "Sir/Madam"},\n\n` +
+    `Greetings from RERA Easy!\n\n` +
+    `Please find attached our quotation ${quoteNo}` +
+    (projName ? ` for ${projName}` : "") +
+    ` dated ${prettyDate($("quoteDate").value)}.\n\n` +
+    `Kindly review it and feel free to reach out for any clarification.\n\n` +
+    `Warm regards,\nRERA Easy\n+91 79001 27844 / +91 99879 57851`;
+  const to = $("custEmail").value.trim();
+  window.location.href =
+    `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 function exportWord() {
   const blob = new Blob([buildWordHtml()], { type: "application/msword" });
   const a = document.createElement("a");
@@ -3376,6 +3397,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // PDF export = browser print dialog -> "Save as PDF"
   $("btnPdf").addEventListener("click", () => window.print());
+  $("btnEmail")?.addEventListener("click", shareByEmail);
   $("btnPrint").addEventListener("click", () => window.print());
   $("btnWord").addEventListener("click", exportWord);
 
