@@ -434,16 +434,16 @@ const PKG_QPR = [
   "Preparation of Draft of Form 1, Form 2 & Form 3 with basic Project Details excluding Professional findings such as Physical / Financial / Technical Values",
 ];
 const PKG_PROFILE = [
-  "Updation of amended/revised permissions from the local planning authority",
+  "Uploading of amended/revised permissions from the local planning authority",
   "Updation of parking details",
-  "Updation and Amendment of Encumbrance Details (Finance/Legal)",
+  "Updation and Amendment of Financial Encumbrance Details",
+  "Obtaining CERSAI Certificate in case of financial encumbrance",
   "Updation of Litigation details",
   "Updation of Promoter and Stakeholder details",
   "Updation of Communication and contact details",
-  "Updation of project professional details",
+  "Updation of Professional details including Channel Partner, Contractors and others",
   "Drafting assistance of Form 2A (Quality Assurance Certificate)",
-  "Modification & Amendment of Project Details",
-  "Obtaining CERSAI Certificate in case of financial encumbrance",
+  "Modification & Amendment of Project Details (Wherever It is possible without application)",
 ];
 const PKG_CERTS = [
   "Preparing/Updating estimates related to cost of construction for the project",
