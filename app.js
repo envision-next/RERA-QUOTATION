@@ -2668,8 +2668,12 @@ async function renderSavedList() {
   } catch (e) {
     console.error("Load failed:", e);
     list.innerHTML = `<li class="saved-empty">Could not load saved quotations.</li>`;
+    SAVED_CACHE = [];
+    renderAnalytics();
     return;
   }
+  SAVED_CACHE = all;
+  renderAnalytics();
   list.innerHTML = "";
   if (!all.length) {
     list.innerHTML = `<li class="saved-empty">No saved quotations yet.</li>`;
@@ -2695,6 +2699,127 @@ async function renderSavedList() {
       });
       list.appendChild(li);
     });
+}
+
+/* ---------- saved analytics (drawer, first tab) ----------
+   Charts render from the same records the list shows (per-user for
+   users, everything for admin). Search + filters narrow every chart
+   and stat card. Chart.js comes from the CDN; if it can't load
+   (offline), the stat cards still work. */
+let SAVED_CACHE = [];
+const CHARTS = {};
+const AN_COLORS = ["#e9b308", "#5b8def", "#22c55e", "#ef4444", "#a78bfa", "#f97316", "#14b8a6", "#f472b6"];
+
+function drawChart(id, cfg) {
+  if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
+  const el = $(id);
+  if (!el || typeof Chart === "undefined") return;
+  CHARTS[id] = new Chart(el, cfg);
+}
+
+function recTotal(r) {
+  return (
+    (r.services || []).reduce((s, it) => s + (it.amt || 0), 0) +
+    (r.customItems || []).filter((i) => !i.gov).reduce((s, it) => s + (it.amt || 0), 0)
+  );
+}
+
+function filteredRecords() {
+  const q = ($("anSearch")?.value || "").trim().toLowerCase();
+  const status = $("anStatus")?.value || "";
+  const from = $("anFrom")?.value || "";
+  const to = $("anTo")?.value || "";
+  return SAVED_CACHE.filter((r) => {
+    if (status && (r.status || "draft") !== status) return false;
+    const d = r.date || (r.savedAt || "").slice(0, 10);
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    if (q) {
+      const hay = (
+        (r.customer?.name || "") + " " + (r.project?.name || "") + " " +
+        (r.quoteNo || "") + " " + (r.creatorName || r.createdBy || "")
+      ).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderAnalytics() {
+  if (!$("paneAnalytics")) return;
+  const recs = filteredRecords();
+  const total = recs.reduce((s, r) => s + recTotal(r), 0);
+  $("stCount").textContent = recs.length;
+  $("stValue").textContent = "₹ " + fmt0(total);
+  $("stAvg").textContent = "₹ " + fmt0(recs.length ? total / recs.length : 0);
+  const mNow = new Date().toISOString().slice(0, 7);
+  $("stMonth").textContent =
+    "₹ " + fmt0(recs.filter((r) => (r.date || r.savedAt || "").slice(0, 7) === mNow).reduce((s, r) => s + recTotal(r), 0));
+
+  const axis = { ticks: { color: "#9db4c8", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.07)" } };
+  const legend = { labels: { color: "#dbe4ff", font: { size: 10 }, boxWidth: 12 } };
+  const base = { responsive: true, maintainAspectRatio: false, plugins: { legend } };
+
+  // monthly trend: value + count
+  const byM = {};
+  recs.forEach((r) => {
+    const m = (r.date || r.savedAt || "").slice(0, 7);
+    if (!m) return;
+    byM[m] = byM[m] || { c: 0, v: 0 };
+    byM[m].c++;
+    byM[m].v += recTotal(r);
+  });
+  const months = Object.keys(byM).sort();
+  drawChart("chLine", {
+    type: "line",
+    data: {
+      labels: months,
+      datasets: [
+        { label: "Value (₹)", data: months.map((m) => byM[m].v), borderColor: "#e9b308", backgroundColor: "rgba(233,179,8,.2)", fill: true, tension: 0.3, yAxisID: "y" },
+        { label: "Count", data: months.map((m) => byM[m].c), borderColor: "#5b8def", tension: 0.3, yAxisID: "y1" },
+      ],
+    },
+    options: { ...base, scales: { x: axis, y: axis, y1: { ...axis, position: "right", grid: { display: false } } } },
+  });
+
+  // status split
+  const st = {};
+  recs.forEach((r) => { const s = r.status || "draft"; st[s] = (st[s] || 0) + 1; });
+  drawChart("chPie", {
+    type: "pie",
+    data: { labels: Object.keys(st), datasets: [{ data: Object.values(st), backgroundColor: AN_COLORS }] },
+    options: base,
+  });
+
+  // value by service (top 6 + Other)
+  const sv = {};
+  recs.forEach((r) => {
+    (r.services || []).forEach((it) => {
+      const n = SHORT_TITLES[it.key] || (CATALOGUE[it.key] && CATALOGUE[it.key].label) || it.key || "Other";
+      sv[n] = (sv[n] || 0) + (it.amt || 0);
+    });
+    (r.customItems || []).filter((i) => !i.gov).forEach((it) => {
+      sv["Custom items"] = (sv["Custom items"] || 0) + (it.amt || 0);
+    });
+  });
+  const top = Object.entries(sv).sort((a, b) => b[1] - a[1]);
+  const slices = top.slice(0, 6);
+  const rest = top.slice(6).reduce((s, x) => s + x[1], 0);
+  if (rest > 0) slices.push(["Other", rest]);
+  drawChart("chDonut", {
+    type: "doughnut",
+    data: { labels: slices.map((x) => x[0]), datasets: [{ data: slices.map((x) => x[1]), backgroundColor: AN_COLORS }] },
+    options: base,
+  });
+
+  // value by team member (admin sees everyone; users see themselves)
+  const cr = {};
+  recs.forEach((r) => { const n = r.creatorName || r.createdBy || "Unknown"; cr[n] = (cr[n] || 0) + recTotal(r); });
+  drawChart("chBar", {
+    type: "bar",
+    data: { labels: Object.keys(cr), datasets: [{ label: "Value (₹)", data: Object.values(cr), backgroundColor: "#e9b308", borderRadius: 6 }] },
+    options: { ...base, scales: { x: axis, y: axis } },
+  });
 }
 
 /* ---------- new quotation ---------- */
@@ -3398,6 +3523,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   // PDF export = browser print dialog -> "Save as PDF"
   $("btnPdf").addEventListener("click", () => window.print());
   $("btnEmail")?.addEventListener("click", shareByEmail);
+
+  // saved drawer: Analytics tab (charts + filters) / Quotations tab
+  const switchTab = (an) => {
+    $("paneAnalytics").hidden = !an;
+    $("paneList").hidden = an;
+    $("tabAnalytics").classList.toggle("active", an);
+    $("tabList").classList.toggle("active", !an);
+    if (an) renderAnalytics();
+  };
+  $("tabAnalytics")?.addEventListener("click", () => switchTab(true));
+  $("tabList")?.addEventListener("click", () => switchTab(false));
+  ["anSearch", "anStatus", "anFrom", "anTo"].forEach((id) =>
+    $(id)?.addEventListener("input", renderAnalytics)
+  );
   $("btnPrint").addEventListener("click", () => window.print());
   $("btnWord").addEventListener("click", exportWord);
 

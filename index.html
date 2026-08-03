@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=17" />
+  <link rel="stylesheet" href="styles.css?v=20" />
 </head>
 <body>
 
@@ -317,9 +317,43 @@
         <h3>Saved Quotations</h3>
         <button class="btn btn-ghost" id="btnCloseDrawer"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
-      <ul class="saved-list" id="savedList">
-        <li class="saved-empty">No saved quotations yet.</li>
-      </ul>
+      <div class="drawer-tabs">
+        <button class="dtab active" id="tabAnalytics"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Analytics</button>
+        <button class="dtab" id="tabList"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Quotations</button>
+      </div>
+
+      <div class="drawer-pane" id="paneAnalytics">
+        <div class="an-filters">
+          <input type="text" id="anSearch" placeholder="Search customer / project / QT no..." />
+          <select id="anStatus">
+            <option value="">All statuses</option>
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="accepted">Accepted</option>
+            <option value="expired">Expired</option>
+          </select>
+          <input type="date" id="anFrom" title="From date" />
+          <input type="date" id="anTo" title="To date" />
+        </div>
+        <div class="an-stats">
+          <div class="an-stat"><b id="stCount">0</b><span>Quotations</span></div>
+          <div class="an-stat"><b id="stValue">₹ 0</b><span>Total Value</span></div>
+          <div class="an-stat"><b id="stAvg">₹ 0</b><span>Average</span></div>
+          <div class="an-stat"><b id="stMonth">₹ 0</b><span>This Month</span></div>
+        </div>
+        <div class="an-grid">
+          <div class="an-chart wide"><h4>Monthly Trend</h4><canvas id="chLine"></canvas></div>
+          <div class="an-chart"><h4>By Status</h4><canvas id="chPie"></canvas></div>
+          <div class="an-chart"><h4>Value by Service</h4><canvas id="chDonut"></canvas></div>
+          <div class="an-chart wide"><h4>Value by Team Member</h4><canvas id="chBar"></canvas></div>
+        </div>
+      </div>
+
+      <div class="drawer-pane" id="paneList" hidden>
+        <ul class="saved-list" id="savedList">
+          <li class="saved-empty">No saved quotations yet.</li>
+        </ul>
+      </div>
     </aside>
   </div>
 
@@ -374,6 +408,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=19"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>
