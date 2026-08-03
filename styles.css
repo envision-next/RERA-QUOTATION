@@ -1645,6 +1645,44 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-box.gov-box .fee-combined .fee-line span { font-size: 12.5px; color: #8a6a06; }
 .fee-box.gov-box .fee-combined .fee-line b { font-size: 15px; color: #111; }
 
+/* --- package comparison matrix (prints after the last package's
+       professional fee strip when 2+ packages are offered) --- */
+.pkg-compare { margin: 6mm 0 18px; }
+.pkg-compare .pc-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #111;
+  border-left: 4px solid var(--gold, #e9b308);
+  padding-left: 10px;
+  margin-bottom: 8px;
+}
+.pkg-compare table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+.pkg-compare th,
+.pkg-compare td {
+  border: 1px solid #e2ddcc;
+  padding: 5px 8px;
+  text-align: center;
+}
+.pkg-compare thead th {
+  background: #141414;
+  color: var(--gold, #e9b308);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.pkg-compare .pc-svc { text-align: left; }
+.pkg-compare tbody .pc-svc { font-weight: 600; color: #222; }
+.pkg-compare tbody tr:nth-child(even) td { background: var(--cream, #fdf8ec); }
+.pkg-compare .pc-yes { color: #1a7f37; font-weight: 800; }
+.pkg-compare .pc-no { color: #b91c1c; font-weight: 800; }
+
 /* --- sign-in gate & team manager (app chrome, never prints) --- */
 .auth-chip {
   font-size: 13px;
@@ -1887,6 +1925,7 @@ body.modal-open { overflow: hidden; }
   .prop-footer { border-radius: 0; }   /* paper corners aren't rounded in print */
 
   .prop-topbar, .card-head, .card-pill, .prop-callout, .fee-box, .offering-fee,
+  .pkg-compare thead th, .pkg-compare tbody td,
   .prop-annex-head i, .prop-footer, .card-list li::before,
   .terms-list li::before, .proposal .docs-list li::before,
   .proposal .wordmark span {

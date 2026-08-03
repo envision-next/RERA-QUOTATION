@@ -1704,14 +1704,33 @@ function rebuildIndex() {
   const tbl = $("indexTable");
   if (!tbl) return;
 
-  // one line per billed item: offerings first, then custom items
-  const lines = keys.map((k) => ({
-    name:
+  // one line per billed item: offerings first, then custom items.
+  // 2+ retainer packages are OPTIONS the client picks from — they
+  // collapse into one "any one" line instead of separate entries
+  const pkgKeys = keys.filter(isYearly);
+  const lines = [];
+  let pkgLineDone = false;
+  keys.forEach((k) => {
+    const name =
       (offeringHead(k) && offeringHead(k).querySelector(".offering-title")?.innerText.trim()) ||
-      SHORT_TITLES[k] || CATALOGUE[k].label,
-    amt: offeringAmount(k),
-    yearly: isYearly(k),
-  }));
+      SHORT_TITLES[k] || CATALOGUE[k].label;
+    if (isYearly(k) && pkgKeys.length >= 2) {
+      if (pkgLineDone) return;
+      pkgLineDone = true;
+      const names = pkgKeys.map(
+        (p) =>
+          (offeringHead(p) && offeringHead(p).querySelector(".offering-title")?.innerText.trim()) ||
+          SHORT_TITLES[p] || CATALOGUE[p].label
+      );
+      lines.push({
+        name: `Retainer Package (Any One): ${names.join(" / ")}`,
+        amt: pkgKeys.reduce((s, p) => s + offeringAmount(p), 0),
+        yearly: true,
+      });
+      return;
+    }
+    lines.push({ name, amt: offeringAmount(k), yearly: isYearly(k) });
+  });
   // items inside an offering roll into that offering's amount; only
   // standalone custom items get their own index row
   document.querySelectorAll(".svc-card.custom-card:not([data-parent])").forEach((c) => {
@@ -1764,6 +1783,47 @@ function profRightHtml(key, gst) {
       (offYearly ? `<div class="of-per">*Payable per Year</div>` : "");
 }
 
+/* packages are OPTIONS the client picks from — with 2+ selected, a
+   comparison table (from the client's matrix) prints after the last
+   package's professional fee strip */
+const PKG_COMPARE = [
+  ["Consultation & Advisory", 1, 1, 1, 1],
+  ["QPR Filing", 1, 1, 1, 1],
+  ["Bank Account Advisory", 1, 1, 1, 1],
+  ["RERA Profile & Project Updation", 1, 1, 1, 1],
+  ["Form 1 - Preparation & Certification", 0, 0, 0, 1],
+  ["Form 2 - Preparation & Certification", 0, 1, 1, 1],
+  ["Form 3 - Preparation & Certification", 0, 1, 1, 1],
+  ["Annual RERA Audit / Form 5", 0, 0, 1, 1],
+  ["Form 1 - Vetting", 1, 1, 1, 1],
+  ["Form 2 - Vetting", 1, 1, 1, 1],
+  ["Form 3 - Vetting", 1, 1, 1, 1],
+];
+const PKG_ORDER = ["package_a", "package_b", "package_c", "package_d"];
+
+function buildCompareEl(pkgKeys) {
+  const cols = PKG_ORDER.filter((k) => pkgKeys.includes(k));
+  const div = document.createElement("div");
+  div.className = "pkg-compare";
+  div.innerHTML = `
+    <div class="pc-title">Package Comparison</div>
+    <table>
+      <thead><tr><th class="pc-svc">Services</th>${cols
+        .map((k) => `<th>${escapeHtml(SHORT_TITLES[k] || CATALOGUE[k].label)}</th>`)
+        .join("")}</tr></thead>
+      <tbody>${PKG_COMPARE.map(
+        (row) =>
+          `<tr><td class="pc-svc">${escapeHtml(row[0])}</td>${cols
+            .map((k) => {
+              const on = row[PKG_ORDER.indexOf(k) + 1];
+              return `<td class="${on ? "pc-yes" : "pc-no"}">${on ? "&#10003;" : "&#10007;"}</td>`;
+            })
+            .join("")}</tr>`
+      ).join("")}</tbody>
+    </table>`;
+  return div;
+}
+
 function rebuildOfferingFees() {
   const gst0 = parseFloat($("taxRate").value) || 0;
   // while an input inside a card has focus, only refresh amounts in
@@ -1804,7 +1864,7 @@ function rebuildOfferingFees() {
     });
     return;
   }
-  document.querySelectorAll(".offering-fee, .offering-add").forEach((el) => el.remove());
+  document.querySelectorAll(".offering-fee, .offering-add, .pkg-compare").forEach((el) => el.remove());
   const keys = selectedKeys();
   const gst = parseFloat($("taxRate").value) || 0;
   // per-offering fee strips only make sense with 2+ offerings — a
@@ -1855,6 +1915,15 @@ function rebuildOfferingFees() {
     add.addEventListener("click", () => addCustomCard({}, key));
     anchor.after(add);
   });
+
+  // 2+ packages = the client chooses one — print the comparison
+  // matrix right after the last package's professional fee strip
+  const pkgSel = keys.filter(isYearly);
+  if (pkgSel.length >= 2 && showFees) {
+    const lastPkg = pkgSel[pkgSel.length - 1];
+    const strip = document.querySelector(`.offering-fee[data-key="${lastPkg}"]:not(.gov-fee)`);
+    if (strip) strip.after(buildCompareEl(pkgSel));
+  }
   // the global add button only serves quotes without any offering
   const global = $("btnAddRow");
   if (global) global.style.display = keys.length ? "none" : "";
