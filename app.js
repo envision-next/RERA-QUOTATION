@@ -1447,10 +1447,20 @@ function toggleSectionPill(card, key) {
     const inp = card.querySelector(".i-amt");
     const amt = parseAmt(inp?.value) || 0;
     card.dataset.lastAmt = String(amt);
+    const others = otherInputs();
+    if (amt > 0 && !others.length) {
+      // no other priced section can absorb this fee (e.g. a package's
+      // only priced section) — keep it in a hidden field so the
+      // offering total stands while the card reads "Included"
+      pill.outerHTML = sectionPillHtml(true, amt, true);
+      const panelAmt0 = panelAmtInput(key);
+      if (panelAmt0) panelAmt0.value = fmt0(serviceTotal(key));
+      recalc();
+      return;
+    }
     pill.outerHTML = sectionPillHtml(false, 0);
     // the offering total must not change: spread this section's price
     // proportionally over the remaining priced sections below
-    const others = otherInputs();
     if (amt > 0 && others.length) {
       const base = others.reduce((s, i) => s + parseAmt(i.value), 0);
       let remaining = amt;
@@ -1481,7 +1491,12 @@ function toggleSectionPill(card, key) {
     const secIdx = parseInt(card.dataset.sec, 10) || 0;
     const catAmt =
       (CATALOGUE[key].sections && CATALOGUE[key].sections[secIdx] && CATALOGUE[key].sections[secIdx].price) || 0;
-    pill.outerHTML = sectionPillHtml(true, parseAmt(card.dataset.lastAmt || "0") || catAmt);
+    // a hidden-price section (package fee) restores from its hidden
+    // field — remove it so the fee isn't counted twice
+    const hidden = card.querySelector('input.i-amt[type="hidden"]');
+    const hiddenVal = hidden ? parseAmt(hidden.value) : 0;
+    hidden?.remove();
+    pill.outerHTML = sectionPillHtml(true, hiddenVal || parseAmt(card.dataset.lastAmt || "0") || catAmt);
     bindSectionAmt(card, key);
   }
   const panelAmt = panelAmtInput(key);
@@ -1629,10 +1644,9 @@ function addSectionCard(key, secIdx, title, priced, amount, sub, hidePrice, afte
   card.dataset.key = key;
   card.dataset.sec = String(secIdx);
   card.dataset.uid = String(++CARD_UID);
-  // every section can flip between a price and "Included in our
-  // scope" (via the sidebar dropdown) — except hidden-price sections,
-  // which carry the package fee
-  const canToggle = !hidePrice;
+  // every section flips between a price and "Included in our scope"
+  // via the sidebar dropdown (the on-card button stays hidden)
+  const canToggle = true;
   card.innerHTML = `
     <div class="card-head">
       <button class="drag-handle no-print" title="Drag to reorder within this offering">${ICON_GRIP}</button>
