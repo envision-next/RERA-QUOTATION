@@ -431,7 +431,7 @@ const PKG_QPR = [
   "Updation of Cost details (Incurred)",
   "Updation of Inventory Details, Building Details, Project Details, & Status",
   "Filing of QPR Report to MahaRERA on quarterly basis",
-  "Preparation of Draft of Form 1, Form 2 & Form 3 with basic Project Details excluding Professional findings such as Physical / Financial / Technical Values",
+  "Preparation of Draft of Form 1, Form 2 & Form 3 with basic Project Details excluding Professional findings such as Physical / Financial / Technical Values & Certification",
 ];
 const PKG_PROFILE = [
   "Uploading of amended/revised permissions from the local planning authority",
