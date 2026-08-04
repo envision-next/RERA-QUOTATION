@@ -651,7 +651,6 @@ const CATALOGUE = {
     subs: [
       "QPR Filings: Filing of all pending Quarterly Progress Reports.",
       "APR Filings: Filing of all pending Annual Progress Reports.",
-      "Form 5 Filing: Annual audit report (Form 5) preparation support & filing.",
     ],
     docs: [
       "Sales & bank statements for pending periods.",
@@ -1193,6 +1192,7 @@ function deselectService(key) {
   offeringHead(key)?.remove();
   delete REMOVED_SECS[key];
   document.querySelector(`.restore-bar[data-key="${key}"]`)?.remove();
+  document.querySelector(`.pending-picker[data-key="${key}"]`)?.remove();
   // a sectioned offering owns several cards — remove them all, along
   // with any custom items added inside this offering
   document
@@ -1405,6 +1405,107 @@ function bindServiceAmt(card, key) {
   });
 }
 
+/* ---------- Pending Compliances picker ----------
+   Screen-only checkbox tree (QPR: Form 1-3 with FY + Quarter; APR:
+   Form 5 / Form 2A with FY). Ticked combinations print as extra
+   numbered lines in the card, so they save/load as plain text. */
+
+function fyOptions() {
+  // FY 2017-18 up to the running financial year — the list grows by
+  // itself every April
+  const now = new Date();
+  const end = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const list = [];
+  for (let y = 2017; y <= end; y++) list.push(y + "-" + String((y + 1) % 100).padStart(2, "0"));
+  return list;
+}
+
+const PENDING_TREE = [
+  { g: "QPR", forms: [
+    { f: "Form 1", quarters: true },
+    { f: "Form 2", quarters: true },
+    { f: "Form 3", quarters: true },
+  ]},
+  { g: "APR", forms: [
+    { f: "Form 5", quarters: false },
+    { f: "Form 2A", quarters: false },
+  ]},
+];
+
+function buildPendingPicker(card, key) {
+  const years = fyOptions();
+  const yearBoxes = years
+    .map((y) => `<label><input type="checkbox" class="pp-y" data-y="${y}">${y}</label>`)
+    .join("");
+  const quarterBoxes = ["Q1", "Q2", "Q3", "Q4"]
+    .map((q) => `<label><input type="checkbox" class="pp-q" data-q="${q}">${q}</label>`)
+    .join("");
+  const picker = document.createElement("div");
+  picker.className = "pending-picker no-print";
+  picker.dataset.key = key;
+  picker.innerHTML =
+    `<div class="pp-title">Select pending filings - ticked items print in the card above</div>` +
+    PENDING_TREE.map(
+      (grp) => `
+      <div class="pp-row">
+        <input type="checkbox" class="pp-g" data-g="${grp.g}">
+        <details class="pp-group">
+          <summary>${grp.g}</summary>
+          ${grp.forms.map(
+            (fm) => `
+            <div class="pp-row">
+              <input type="checkbox" class="pp-f" data-g="${grp.g}" data-f="${fm.f}">
+              <details class="pp-form">
+                <summary>${fm.f}</summary>
+                <details class="pp-sub"><summary>Financial Year</summary><div class="pp-opts">${yearBoxes}</div></details>
+                ${fm.quarters ? `<details class="pp-sub"><summary>Quarter</summary><div class="pp-opts">${quarterBoxes}</div></details>` : ""}
+              </details>
+            </div>`
+          ).join("")}
+        </details>
+      </div>`
+    ).join("");
+
+  picker.addEventListener("change", (e) => {
+    // ticking a form implies its group
+    if (e.target.classList.contains("pp-f") && e.target.checked) {
+      const g = picker.querySelector(`.pp-g[data-g="${e.target.dataset.g}"]`);
+      if (g) g.checked = true;
+    }
+    rebuildPendingLines(card, picker);
+  });
+  return picker;
+}
+
+function rebuildPendingLines(card, picker) {
+  pushUndo();
+  const lines = [];
+  picker.querySelectorAll(".pp-f").forEach((f) => {
+    if (!f.checked) return;
+    const gBox = picker.querySelector(`.pp-g[data-g="${f.dataset.g}"]`);
+    if (gBox && !gBox.checked) return;
+    const fd = f.nextElementSibling; // the form's <details>
+    const years = [...fd.querySelectorAll(".pp-y:checked")].map((i) => i.dataset.y);
+    const quarters = [...fd.querySelectorAll(".pp-q:checked")].map((i) => i.dataset.q);
+    let line = `Pending ${f.dataset.g} - ${f.dataset.f}`;
+    if (years.length) line += `: FY ${years.join(", ")}`;
+    if (quarters.length) line += ` (${quarters.join(", ")})`;
+    lines.push(line);
+  });
+  const ol = card.querySelector(".card-list");
+  [...ol.querySelectorAll("li")].forEach((li) => {
+    const t = li.textContent.trim();
+    if (t.startsWith("Pending QPR") || t.startsWith("Pending APR")) li.remove();
+  });
+  lines.forEach((l) => {
+    const li = document.createElement("li");
+    li.textContent = l;
+    ol.appendChild(li);
+  });
+  if (!ol.querySelector("li")) ol.innerHTML = "<li><br></li>";
+  recalc();
+}
+
 function addServiceCard(key, amount, subText, customAmt, included) {
   if (serviceCard(key)) return serviceCard(key);
   const card = document.createElement("div");
@@ -1445,6 +1546,8 @@ function addServiceCard(key, amount, subText, customAmt, included) {
     if (all.length) all[all.length - 1].after(card);
     else $("svcCards").appendChild(card);
   }
+  // pending compliances carries its screen-only filing picker
+  if (key === "pending_compliances") card.after(buildPendingPicker(card, key));
   return card;
 }
 
@@ -3147,7 +3250,8 @@ function repaginateCore() {
     if (
       b.classList.contains("offering-add") ||
       b.classList.contains("restore-bar") ||
-      b.classList.contains("btn-add")
+      b.classList.contains("btn-add") ||
+      b.classList.contains("pending-picker")
     ) {
       cur.push(b);
       continue;
@@ -3168,7 +3272,8 @@ function repaginateCore() {
         const isWidget = (el) =>
           el.classList.contains("offering-add") ||
           el.classList.contains("restore-bar") ||
-          el.classList.contains("btn-add");
+          el.classList.contains("btn-add") ||
+          el.classList.contains("pending-picker");
         // walk back over widgets AND small trailing blocks (a gov-fee
         // strip, a short card) so the whole closing group moves as one
         // — never leaving a strip separated from its cards
