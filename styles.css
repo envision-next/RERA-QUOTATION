@@ -1692,6 +1692,24 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   cursor: pointer;
 }
 .pending-picker .pp-opts input[type="checkbox"] { accent-color: #e9b308; }
+/* the year list scrolls — it now runs well into upcoming years */
+.pending-picker .pp-opts {
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+/* sidebar variant: the picker sits in the dark panel below the
+   Pending Compliances row */
+.svc-subs .pending-picker {
+  margin: 4px 0 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(233, 179, 8, .45);
+  color: #cfd8ea;
+}
+.svc-subs .pending-picker .pp-title { color: #e9b308; }
+.svc-subs .pending-picker summary { color: #dbe4ff; }
+.svc-subs .pending-picker .pp-sub summary { color: #cbb26a; }
+.svc-subs .pending-picker .pp-opts label { color: #cfd8ea; }
 
 /* --- package comparison matrix (prints after the last package's
        professional fee strip when 2+ packages are offered) --- */

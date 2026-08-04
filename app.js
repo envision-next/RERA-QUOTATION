@@ -978,7 +978,7 @@ function renderServicePicker() {
           <span class="svc-name" title="${escapeAttr(CATALOGUE[key].label)}">${escapeHtml(CATALOGUE[key].label)}</span>
         </label>
         <input type="text" class="svc-amt" data-key="${key}" inputmode="decimal" hidden>
-        ${CATALOGUE[key].sections ? `<button class="svc-sub-btn" title="Section prices"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>` : ""}
+        ${CATALOGUE[key].sections || key === "pending_compliances" ? `<button class="svc-sub-btn" title="${key === "pending_compliances" ? "Select pending filings" : "Section prices"}"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>` : ""}
       `;
       host.appendChild(row);
 
@@ -996,7 +996,13 @@ function renderServicePicker() {
         subBtn.addEventListener("click", () => {
           subs.hidden = !subs.hidden;
           subBtn.classList.toggle("open", !subs.hidden);
-          if (!subs.hidden) buildSubRows(key, subs);
+          if (subs.hidden) return;
+          if (key === "pending_compliances") {
+            // the QPR/APR filing picker keeps its state while open
+            if (!subs.querySelector(".pending-picker")) subs.appendChild(buildPendingPicker(key));
+          } else {
+            buildSubRows(key, subs);
+          }
         });
         check.addEventListener("change", () => {
           if (!check.checked) {
@@ -1411,12 +1417,12 @@ function bindServiceAmt(card, key) {
    numbered lines in the card, so they save/load as plain text. */
 
 function fyOptions() {
-  // FY 2017-18 up to the running financial year — the list grows by
-  // itself every April
+  // FY 2017-18 through ten years past the running financial year — a
+  // scrolling list that always includes upcoming years
   const now = new Date();
-  const end = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const cur = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
   const list = [];
-  for (let y = 2017; y <= end; y++) list.push(y + "-" + String((y + 1) % 100).padStart(2, "0"));
+  for (let y = 2017; y <= cur + 10; y++) list.push(y + "-" + String((y + 1) % 100).padStart(2, "0"));
   return list;
 }
 
@@ -1432,7 +1438,7 @@ const PENDING_TREE = [
   ]},
 ];
 
-function buildPendingPicker(card, key) {
+function buildPendingPicker(key) {
   const years = fyOptions();
   const yearBoxes = years
     .map((y) => `<label><input type="checkbox" class="pp-y" data-y="${y}">${y}</label>`)
@@ -1472,7 +1478,8 @@ function buildPendingPicker(card, key) {
       const g = picker.querySelector(`.pp-g[data-g="${e.target.dataset.g}"]`);
       if (g) g.checked = true;
     }
-    rebuildPendingLines(card, picker);
+    const card = serviceCard(key); // picker lives in the sidebar now
+    if (card) rebuildPendingLines(card, picker);
   });
   return picker;
 }
@@ -1546,8 +1553,6 @@ function addServiceCard(key, amount, subText, customAmt, included) {
     if (all.length) all[all.length - 1].after(card);
     else $("svcCards").appendChild(card);
   }
-  // pending compliances carries its screen-only filing picker
-  if (key === "pending_compliances") card.after(buildPendingPicker(card, key));
   return card;
 }
 
