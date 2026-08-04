@@ -1440,11 +1440,20 @@ const PENDING_TREE = [
 
 function buildPendingPicker(key) {
   const years = fyOptions();
-  const yearBoxes = years
-    .map((y) => `<label><input type="checkbox" class="pp-y" data-y="${y}">${y}</label>`)
-    .join("");
-  const quarterBoxes = ["Q1", "Q2", "Q3", "Q4"]
-    .map((q) => `<label><input type="checkbox" class="pp-q" data-q="${q}">${q}</label>`)
+  // quarters are picked PER financial year — each year row carries its
+  // own Q1-Q4 boxes (quarter-bearing forms only)
+  const yearRows = (withQ) => years
+    .map(
+      (y) => `
+      <div class="pp-yrow">
+        <label><input type="checkbox" class="pp-y" data-y="${y}">${y}</label>
+        ${withQ
+          ? `<span class="pp-qs">${["Q1", "Q2", "Q3", "Q4"]
+              .map((q) => `<label><input type="checkbox" class="pp-q" data-y="${y}" data-q="${q}">${q}</label>`)
+              .join("")}</span>`
+          : ""}
+      </div>`
+    )
     .join("");
   const picker = document.createElement("div");
   picker.className = "pending-picker no-print";
@@ -1463,8 +1472,7 @@ function buildPendingPicker(key) {
               <input type="checkbox" class="pp-f" data-g="${grp.g}" data-f="${fm.f}">
               <details class="pp-form">
                 <summary>${fm.f}</summary>
-                <details class="pp-sub"><summary>Financial Year</summary><div class="pp-opts">${yearBoxes}</div></details>
-                ${fm.quarters ? `<details class="pp-sub"><summary>Quarter</summary><div class="pp-opts">${quarterBoxes}</div></details>` : ""}
+                <details class="pp-sub"><summary>Financial Year</summary><div class="pp-opts pp-ylist">${yearRows(fm.quarters)}</div></details>
               </details>
             </div>`
           ).join("")}
@@ -1477,6 +1485,12 @@ function buildPendingPicker(key) {
     if (e.target.classList.contains("pp-f") && e.target.checked) {
       const g = picker.querySelector(`.pp-g[data-g="${e.target.dataset.g}"]`);
       if (g) g.checked = true;
+    }
+    // ticking a quarter implies its year
+    if (e.target.classList.contains("pp-q") && e.target.checked) {
+      const row = e.target.closest(".pp-yrow");
+      const y = row?.querySelector(".pp-y");
+      if (y) y.checked = true;
     }
     const card = serviceCard(key); // picker lives in the sidebar now
     if (card) rebuildPendingLines(card, picker);
@@ -1493,17 +1507,35 @@ function rebuildPendingLines(card, picker) {
     if (gBox && !gBox.checked) return;
     const fd = f.nextElementSibling; // the form's <details>
     const years = [...fd.querySelectorAll(".pp-y:checked")].map((i) => i.dataset.y);
-    const quarters = [...fd.querySelectorAll(".pp-q:checked")].map((i) => i.dataset.q);
     const hasQuarters = !!fd.querySelector(".pp-q");
-    // "QPR - Form 1 of Financial Year 2018-19 of all Quarters" /
-    // "... for Q1, Q2" — APR reads the same minus quarters
-    let line = `${f.dataset.g} - ${f.dataset.f}`;
-    if (years.length) line += ` of Financial Year ${years.join(", ")}`;
-    if (hasQuarters)
-      line += quarters.length === 0 || quarters.length === 4
+    if (!hasQuarters) {
+      // APR: one line listing the ticked years
+      let line = `${f.dataset.g} - ${f.dataset.f}`;
+      if (years.length) line += ` of Financial Year ${years.join(", ")}`;
+      lines.push(line);
+      return;
+    }
+    // QPR: one line per ticked year, quarters written with the month
+    // they end in — Q1 (June 2018), Q4 (March 2019)
+    if (!years.length) {
+      lines.push(`${f.dataset.g} - ${f.dataset.f}`);
+      return;
+    }
+    years.forEach((y) => {
+      const start = parseInt(y, 10);
+      const qLabel = {
+        Q1: `Q1 (June ${start})`,
+        Q2: `Q2 (September ${start})`,
+        Q3: `Q3 (December ${start})`,
+        Q4: `Q4 (March ${start + 1})`,
+      };
+      const qs = [...fd.querySelectorAll(`.pp-q[data-y="${y}"]:checked`)].map((i) => i.dataset.q);
+      let line = `${f.dataset.g} - ${f.dataset.f} of Financial Year ${y}`;
+      line += qs.length === 0 || qs.length === 4
         ? " of all Quarters"
-        : ` for ${quarters.join(", ")}`;
-    lines.push(line);
+        : ` for ${qs.map((q) => qLabel[q]).join(", ")}`;
+      lines.push(line);
+    });
   });
   const ol = card.querySelector(".card-list");
   [...ol.querySelectorAll("li")].forEach((li) => {

@@ -1694,9 +1694,13 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .pending-picker .pp-opts input[type="checkbox"] { accent-color: #e9b308; }
 /* the year list scrolls — it now runs well into upcoming years */
 .pending-picker .pp-opts {
-  max-height: 132px;
+  max-height: 150px;
   overflow-y: auto;
 }
+.pending-picker .pp-ylist { display: block; }
+.pending-picker .pp-yrow { display: flex; align-items: center; gap: 12px; padding: 2px 0; }
+.pending-picker .pp-yrow > label { width: 86px; flex: none; }
+.pending-picker .pp-qs { display: inline-flex; gap: 10px; }
 
 /* sidebar variant: the picker sits in the dark panel below the
    Pending Compliances row */
