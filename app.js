@@ -1448,9 +1448,9 @@ function buildPendingPicker(key) {
       <div class="pp-yrow">
         <label><input type="checkbox" class="pp-y" data-y="${y}">${y}</label>
         ${withQ
-          ? `<span class="pp-qs">${["Q1", "Q2", "Q3", "Q4"]
+          ? `<details class="pp-qdrop"><summary>Quarter</summary><span class="pp-qs">${["Q1", "Q2", "Q3", "Q4"]
               .map((q) => `<label><input type="checkbox" class="pp-q" data-y="${y}" data-q="${q}">${q}</label>`)
-              .join("")}</span>`
+              .join("")}</span></details>`
           : ""}
       </div>`
     )

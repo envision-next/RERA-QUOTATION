@@ -1698,9 +1698,17 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   overflow-y: auto;
 }
 .pending-picker .pp-ylist { display: block; }
-.pending-picker .pp-yrow { display: flex; align-items: center; gap: 12px; padding: 2px 0; }
+.pending-picker .pp-yrow { display: flex; align-items: flex-start; gap: 12px; padding: 2px 0; }
 .pending-picker .pp-yrow > label { width: 86px; flex: none; }
-.pending-picker .pp-qs { display: inline-flex; gap: 10px; }
+/* per-year quarter dropdown — the sidebar is too narrow for an inline row */
+.pending-picker .pp-qdrop { flex: 1; }
+.pending-picker .pp-qdrop summary { font-size: 11px; font-weight: 600; }
+.pending-picker .pp-qs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 4px 0 2px 14px;
+}
 
 /* sidebar variant: the picker sits in the dark panel below the
    Pending Compliances row */
