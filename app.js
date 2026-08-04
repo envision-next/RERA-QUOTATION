@@ -1438,61 +1438,77 @@ const PENDING_TREE = [
   ]},
 ];
 
+/* flat chip design — no nested indentation, sized for the narrow
+   sidebar: QPR/APR tabs, then form chips, then one row per year with
+   its own Q1-Q4 toggle chips */
 function buildPendingPicker(key) {
   const years = fyOptions();
-  // quarters are picked PER financial year — each year row carries its
-  // own Q1-Q4 boxes (quarter-bearing forms only)
-  const yearRows = (withQ) => years
-    .map(
-      (y) => `
-      <div class="pp-yrow">
-        <label><input type="checkbox" class="pp-y" data-y="${y}">${y}</label>
+  const yearRows = (withQ) =>
+    `<div class="pp-yscroll">` +
+    years
+      .map(
+        (y) => `
+      <div class="pp-yr" data-y="${y}">
+        <button type="button" class="pp-ychip">${y}</button>
         ${withQ
-          ? `<details class="pp-qdrop"><summary>Quarter</summary><span class="pp-qs">${["Q1", "Q2", "Q3", "Q4"]
-              .map((q) => `<label><input type="checkbox" class="pp-q" data-y="${y}" data-q="${q}">${q}</label>`)
-              .join("")}</span></details>`
+          ? `<span class="pp-qchips">${["Q1", "Q2", "Q3", "Q4"]
+              .map((q) => `<button type="button" class="pp-qchip" data-q="${q}">${q}</button>`)
+              .join("")}</span>`
           : ""}
       </div>`
-    )
-    .join("");
+      )
+      .join("") +
+    `</div>`;
+  const pane = (g, forms, withQ) => `
+    <div class="pp-pane" data-g="${g}"${g === "QPR" ? "" : " hidden"}>
+      <div class="pp-forms">${forms
+        .map((f, i) => `<button type="button" class="pp-formchip${i === 0 ? " on" : ""}" data-f="${f}">${f}</button>`)
+        .join("")}</div>
+      ${forms
+        .map((f, i) => `<div class="pp-years" data-f="${f}"${i === 0 ? "" : " hidden"}>${yearRows(withQ)}</div>`)
+        .join("")}
+    </div>`;
+
   const picker = document.createElement("div");
   picker.className = "pending-picker no-print";
   picker.dataset.key = key;
-  picker.innerHTML =
-    `<div class="pp-title">Select pending filings - ticked items print in the card above</div>` +
-    PENDING_TREE.map(
-      (grp) => `
-      <div class="pp-row">
-        <input type="checkbox" class="pp-g" data-g="${grp.g}">
-        <details class="pp-group">
-          <summary>${grp.g}</summary>
-          ${grp.forms.map(
-            (fm) => `
-            <div class="pp-row">
-              <input type="checkbox" class="pp-f" data-g="${grp.g}" data-f="${fm.f}">
-              <details class="pp-form">
-                <summary>${fm.f}</summary>
-                <details class="pp-sub"><summary>Financial Year</summary><div class="pp-opts pp-ylist">${yearRows(fm.quarters)}</div></details>
-              </details>
-            </div>`
-          ).join("")}
-        </details>
-      </div>`
-    ).join("");
+  picker.innerHTML = `
+    <div class="pp-title">Pending filings - selections print in the card</div>
+    <div class="pp-tabs">
+      <button type="button" class="pp-tab on" data-g="QPR">QPR</button>
+      <button type="button" class="pp-tab" data-g="APR">APR</button>
+    </div>
+    ${pane("QPR", ["Form 1", "Form 2", "Form 3"], true)}
+    ${pane("APR", ["Form 5", "Form 2A"], false)}`;
 
-  picker.addEventListener("change", (e) => {
-    // ticking a form implies its group
-    if (e.target.classList.contains("pp-f") && e.target.checked) {
-      const g = picker.querySelector(`.pp-g[data-g="${e.target.dataset.g}"]`);
-      if (g) g.checked = true;
+  picker.addEventListener("click", (e) => {
+    const tab = e.target.closest(".pp-tab");
+    if (tab) {
+      picker.querySelectorAll(".pp-tab").forEach((t) => t.classList.toggle("on", t === tab));
+      picker.querySelectorAll(".pp-pane").forEach((p) => (p.hidden = p.dataset.g !== tab.dataset.g));
+      return;
     }
-    // ticking a quarter implies its year
-    if (e.target.classList.contains("pp-q") && e.target.checked) {
-      const row = e.target.closest(".pp-yrow");
-      const y = row?.querySelector(".pp-y");
-      if (y) y.checked = true;
+    const fchip = e.target.closest(".pp-formchip");
+    if (fchip) {
+      const pn = fchip.closest(".pp-pane");
+      pn.querySelectorAll(".pp-formchip").forEach((c) => c.classList.toggle("on", c === fchip));
+      pn.querySelectorAll(".pp-years").forEach((yl) => (yl.hidden = yl.dataset.f !== fchip.dataset.f));
+      return;
     }
-    const card = serviceCard(key); // picker lives in the sidebar now
+    const qchip = e.target.closest(".pp-qchip");
+    const ychip = e.target.closest(".pp-ychip");
+    if (!qchip && !ychip) return;
+    const row = e.target.closest(".pp-yr");
+    if (qchip) {
+      qchip.classList.toggle("on");
+      if (qchip.classList.contains("on")) row.querySelector(".pp-ychip").classList.add("on");
+    } else {
+      ychip.classList.toggle("on");
+      // clearing a year clears its quarters too
+      if (!ychip.classList.contains("on"))
+        row.querySelectorAll(".pp-qchip.on").forEach((c) => c.classList.remove("on"));
+    }
+    const card = serviceCard(key);
     if (card) rebuildPendingLines(card, picker);
   });
   return picker;
@@ -1501,40 +1517,31 @@ function buildPendingPicker(key) {
 function rebuildPendingLines(card, picker) {
   pushUndo();
   const lines = [];
-  picker.querySelectorAll(".pp-f").forEach((f) => {
-    if (!f.checked) return;
-    const gBox = picker.querySelector(`.pp-g[data-g="${f.dataset.g}"]`);
-    if (gBox && !gBox.checked) return;
-    const fd = f.nextElementSibling; // the form's <details>
-    const years = [...fd.querySelectorAll(".pp-y:checked")].map((i) => i.dataset.y);
-    const hasQuarters = !!fd.querySelector(".pp-q");
-    if (!hasQuarters) {
-      // APR: one line listing the ticked years
-      let line = `${f.dataset.g} - ${f.dataset.f}`;
-      if (years.length) line += ` of Financial Year ${years.join(", ")}`;
-      lines.push(line);
-      return;
-    }
-    // QPR: one line per ticked year, quarters written with the month
-    // they end in — Q1 (June 2018), Q4 (March 2019)
-    if (!years.length) {
-      lines.push(`${f.dataset.g} - ${f.dataset.f}`);
-      return;
-    }
-    years.forEach((y) => {
-      const start = parseInt(y, 10);
-      const qLabel = {
-        Q1: `June ${start} (Q1)`,
-        Q2: `September ${start} (Q2)`,
-        Q3: `December ${start} (Q3)`,
-        Q4: `March ${start + 1} (Q4)`,
-      };
-      const qs = [...fd.querySelectorAll(`.pp-q[data-y="${y}"]:checked`)].map((i) => i.dataset.q);
-      let line = `${f.dataset.g} - ${f.dataset.f} of Financial Year ${y}`;
-      line += qs.length === 0 || qs.length === 4
-        ? " of all Quarters"
-        : ` for ${qs.map((q) => qLabel[q]).join(", ")}`;
-      lines.push(line);
+  picker.querySelectorAll(".pp-pane").forEach((pn) => {
+    const g = pn.dataset.g;
+    pn.querySelectorAll(".pp-years").forEach((yl) => {
+      const f = yl.dataset.f;
+      yl.querySelectorAll(".pp-yr").forEach((row) => {
+        if (!row.querySelector(".pp-ychip.on")) return;
+        const y = row.dataset.y;
+        const start = parseInt(y, 10);
+        if (g === "APR") {
+          lines.push(`${g} - ${f} of Financial Year ${y}`);
+          return;
+        }
+        const qLabel = {
+          Q1: `June ${start} (Q1)`,
+          Q2: `September ${start} (Q2)`,
+          Q3: `December ${start} (Q3)`,
+          Q4: `March ${start + 1} (Q4)`,
+        };
+        const qs = [...row.querySelectorAll(".pp-qchip.on")].map((c) => c.dataset.q);
+        let line = `${g} - ${f} of Financial Year ${y}`;
+        line += qs.length === 0 || qs.length === 4
+          ? " of all Quarters"
+          : ` for ${qs.map((q) => qLabel[q]).join(", ")}`;
+        lines.push(line);
+      });
     });
   });
   const ol = card.querySelector(".card-list");
