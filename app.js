@@ -1524,10 +1524,10 @@ function rebuildPendingLines(card, picker) {
     years.forEach((y) => {
       const start = parseInt(y, 10);
       const qLabel = {
-        Q1: `Q1 (June ${start})`,
-        Q2: `Q2 (September ${start})`,
-        Q3: `Q3 (December ${start})`,
-        Q4: `Q4 (March ${start + 1})`,
+        Q1: `June ${start} (Q1)`,
+        Q2: `September ${start} (Q2)`,
+        Q3: `December ${start} (Q3)`,
+        Q4: `March ${start + 1} (Q4)`,
       };
       const qs = [...fd.querySelectorAll(`.pp-q[data-y="${y}"]:checked`)].map((i) => i.dataset.q);
       let line = `${f.dataset.g} - ${f.dataset.f} of Financial Year ${y}`;
