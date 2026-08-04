@@ -1494,15 +1494,21 @@ function rebuildPendingLines(card, picker) {
     const fd = f.nextElementSibling; // the form's <details>
     const years = [...fd.querySelectorAll(".pp-y:checked")].map((i) => i.dataset.y);
     const quarters = [...fd.querySelectorAll(".pp-q:checked")].map((i) => i.dataset.q);
-    let line = `Pending ${f.dataset.g} - ${f.dataset.f}`;
-    if (years.length) line += `: FY ${years.join(", ")}`;
-    if (quarters.length) line += ` (${quarters.join(", ")})`;
+    const hasQuarters = !!fd.querySelector(".pp-q");
+    // "QPR - Form 1 of Financial Year 2018-19 of all Quarters" /
+    // "... for Q1, Q2" — APR reads the same minus quarters
+    let line = `${f.dataset.g} - ${f.dataset.f}`;
+    if (years.length) line += ` of Financial Year ${years.join(", ")}`;
+    if (hasQuarters)
+      line += quarters.length === 0 || quarters.length === 4
+        ? " of all Quarters"
+        : ` for ${quarters.join(", ")}`;
     lines.push(line);
   });
   const ol = card.querySelector(".card-list");
   [...ol.querySelectorAll("li")].forEach((li) => {
     const t = li.textContent.trim();
-    if (t.startsWith("Pending QPR") || t.startsWith("Pending APR")) li.remove();
+    if (/^(Pending )?(QPR|APR) - /.test(t)) li.remove();
   });
   lines.forEach((l) => {
     const li = document.createElement("li");
