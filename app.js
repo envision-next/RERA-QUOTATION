@@ -1530,7 +1530,6 @@ const PENDING_TREE = [
   ]},
   { g: "APR", forms: [
     { f: "Form 5", quarters: false },
-    { f: "Form 2A", quarters: false },
   ]},
 ];
 
@@ -1583,7 +1582,7 @@ function buildPendingPicker(key) {
       <button type="button" class="pp-tab" data-g="APR">APR</button>
     </div>
     ${pane("QPR", ["Form 1", "Form 2", "Form 3"], true)}
-    ${pane("APR", ["Form 5", "Form 2A"], false)}`;
+    ${pane("APR", ["Form 5"], false)}`;
 
   const updateCount = (formEl) => {
     const n = formEl.querySelectorAll(".pp-ychip.on").length;

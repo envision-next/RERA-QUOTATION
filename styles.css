@@ -2185,22 +2185,22 @@ body.modal-open { overflow: hidden; }
 .terms-list li {
   counter-increment: term;
   position: relative;
-  padding: 6px 0 6px 34px;
-  font-size: 12.5px;
-  line-height: 1.6;
+  padding: 4px 0 4px 28px;
+  font-size: 10.5px;
+  line-height: 1.5;
   color: #1f2937;
 }
 .terms-list li::before {
   content: counter(term);
   position: absolute;
   left: 0;
-  top: 7px;
-  width: 20px;
-  height: 20px;
+  top: 5px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   background: #111;
   color: var(--gold);
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 700;
   display: flex;
   align-items: center;
