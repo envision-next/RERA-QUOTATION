@@ -1649,13 +1649,13 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-box.gov-box .fee-combined .fee-line b { font-size: 15px; color: #111; }
 
 /* --- pending compliances picker (sidebar, screen only) ---
-   flat chip design: QPR/APR tabs, form chips, then one row per year
-   with its own Q1-Q4 toggle chips — nothing nested, nothing clipped */
+   accordion: QPR/APR tabs, one collapsible card per form with its own
+   ₹ fee input, years + quarter chips inside the open form */
 .pending-picker {
   margin: 4px 0 6px;
   border: 1px solid rgba(233, 179, 8, .4);
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: 14px; /* concentric: inner cards 10px + 4px gap */
+  padding: 10px;
   background: rgba(255, 255, 255, 0.04);
   font-size: 12px;
   color: #cfd8ea;
@@ -1666,14 +1666,15 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   letter-spacing: .08em;
   text-transform: uppercase;
   color: #e9b308;
-  margin-bottom: 8px;
+  margin: 0 2px 8px;
+  text-wrap: balance;
 }
 .pp-tabs {
   display: flex;
   gap: 4px;
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--glass-border);
-  border-radius: 9px;
+  border-radius: 10px;
   padding: 3px;
   margin-bottom: 8px;
 }
@@ -1686,36 +1687,113 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   background: none;
   border: none;
   border-radius: 7px;
-  padding: 5px;
+  padding: 6px;
   cursor: pointer;
+  transition-property: color, background-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
 }
 .pp-tab.on {
   color: #10131c;
   background: linear-gradient(135deg, #f5c518, #e9b308);
 }
-.pp-forms { display: flex; gap: 6px; margin-bottom: 8px; }
-.pp-formchip {
+
+/* one collapsible card per form */
+.pp-form {
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-bottom: 6px;
+  transition-property: border-color, background-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.pp-form:last-child { margin-bottom: 0; }
+.pp-form.has-sel { border-color: rgba(233, 179, 8, .45); }
+.pp-form.open { background: rgba(255, 255, 255, 0.06); }
+.pp-fhead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px 2px 2px;
+  min-height: 40px;
+}
+.pp-ftoggle {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #cfd8ea;
-  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  font-weight: 700;
+  color: #e6edf7;
+  background: none;
+  border: none;
+  border-radius: 9px;
+  padding: 8px 4px 8px 6px;
+  cursor: pointer;
+  text-align: left;
+}
+.pp-chev {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: #9db4c8;
+  transition-property: transform, color;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}
+.pp-form.open .pp-chev { transform: rotate(90deg); color: #e9b308; }
+.pp-fname { flex: none; }
+.pp-fcount {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #10131c;
+  background: #e9b308;
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.pp-fprice {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9db4c8;
+  background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
-  padding: 4px 6px;
-  cursor: pointer;
+  padding: 5px 8px;
+  cursor: text;
+  transition-property: border-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
 }
-.pp-formchip.on {
-  color: #e9b308;
-  border-color: rgba(233, 179, 8, .6);
-  background: rgba(233, 179, 8, .12);
+.pp-fprice:focus-within { border-color: rgba(233, 179, 8, .7); color: #e9b308; }
+.pp-fee {
+  width: 58px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f5c518;
+  background: none;
+  border: none;
+  outline: none;
+  text-align: right;
 }
-.pp-yscroll { max-height: 200px; overflow-y: auto; padding-right: 4px; }
+.pp-fee::placeholder { color: #5c6f85; font-weight: 600; }
+.pp-fbody { padding: 0 8px 8px; }
+
+.pp-yscroll { max-height: 190px; overflow-y: auto; overflow-x: hidden; padding-right: 2px; }
 .pp-yr {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 3px 0;
   border-bottom: 1px solid rgba(255, 255, 255, .06);
 }
@@ -1724,35 +1802,44 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   font: inherit;
   font-size: 11.5px;
   font-weight: 600;
-  width: 78px;
+  font-variant-numeric: tabular-nums;
+  width: 64px;
   flex: none;
   text-align: center;
   color: #cfd8ea;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--glass-border);
   border-radius: 7px;
-  padding: 3px 0;
+  padding: 5px 0;
   cursor: pointer;
+  transition-property: color, background-color, border-color, transform;
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
 }
+.pp-ychip:active { transform: scale(0.96); }
 .pp-ychip.on {
   color: #10131c;
   background: linear-gradient(135deg, #f5c518, #e9b308);
   border-color: transparent;
   font-weight: 700;
 }
-.pp-qchips { display: flex; gap: 5px; }
+.pp-qchips { display: flex; gap: 4px; }
 .pp-qchip {
   font: inherit;
   font-size: 10.5px;
   font-weight: 700;
-  width: 30px;
+  width: 28px;
   color: #9db4c8;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
-  padding: 3px 0;
+  padding: 5px 0;
   cursor: pointer;
+  transition-property: color, background-color, border-color, transform;
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
 }
+.pp-qchip:active { transform: scale(0.96); }
 .pp-qchip.on {
   color: #10131c;
   background: #e9b308;

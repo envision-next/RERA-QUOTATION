@@ -876,8 +876,75 @@ function countWord(n) {
   return n <= 1 ? "Once" : n === 2 ? "Twice" : n === 3 ? "Thrice" : n + " Times";
 }
 
-/* terms from the RERA Easy Registration–Retainer workbook */
-const DEFAULT_TERMS = [
+/* two stock Terms & Conditions sets: the retainer set prints whenever a
+   retainer package is selected, the general set otherwise. Each line is
+   "Title: body" — the renderer bolds the title and numbers the badges. */
+const TERMS_RETAINER = [
+  "Scope of Engagement: This quotation is applicable only to the Project identified herein and is limited to the services expressly mentioned under the selected package. Any service, activity, application, representation or assistance not specifically included in the selected package shall be treated as an additional service and shall be undertaken only upon mutual confirmation and applicable additional fees.",
+  "Project-Specific Fee: The quoted professional fees are applicable to one Project only. Separate fees shall apply for each additional project, phase, registration or separately registered project undertaken for the Promoter.",
+  "Validity of Retainer: The validity of the retainer may extend up to the completion of the Project and shall be as mutually agreed between the parties. The agreed tenure of the engagement shall be expressly mentioned in the Work Order issued and accepted by the parties.",
+  "Professional Fees & Taxes: The professional fees mentioned in this quotation are exclusive of applicable Government fees, statutory charges, portal charges and other out-of-pocket expenses incurred specifically in connection with the Project. GST at 18% or such other applicable rate shall be charged additionally.",
+  "Payment Terms: The payment terms and schedule shall be mutually discussed and agreed upon between the parties and shall be expressly mentioned in the Work Order.",
+  "Client's Responsibility for Information: The Promoter/Client shall provide complete, accurate, current and authentic information, documents, certificates, approvals, financial records and other particulars required for providing the services. RERA Easy shall be entitled to rely upon the information and documents provided by the Client.",
+  "Accuracy of Information: RERA Easy shall not be responsible for any consequence, discrepancy, rejection, objection, penalty, delay or adverse action arising from incorrect, incomplete, outdated, misleading or delayed information or documents provided by the Client or any third party engaged by the Client.",
+  "Client's Statutory Responsibility: The appointment of RERA Easy shall not relieve the Promoter, its directors, partners, authorised representatives, professionals or consultants of their statutory, contractual or regulatory obligations under the RERA Act, Rules, Regulations, Orders, Circulars or directions issued by the competent authority.",
+  "No Guarantee of Approval or Outcome: RERA Easy shall provide professional consultancy, compliance assistance and procedural support based on the information and documents made available to it. RERA Easy does not guarantee approval, registration, amendment, certification, acceptance, withdrawal, closure, extension or any particular outcome from MahaRERA or any other authority, as such decisions remain solely within the jurisdiction and discretion of the concerned authority.",
+  "Authority Timelines: Any timeline communicated by RERA Easy shall be subject to timely receipt of complete information and documents from the Client and the processing time, requirements and functioning of the concerned authority. RERA Easy shall not be responsible for delays caused by MahaRERA, Government authorities, banks, professionals, consultants, portal issues, technical failures or circumstances beyond its reasonable control.",
+  "Review and Vetting of Certificates: Where the scope includes vetting or review of Form 1, Form 2, Form 3, Form 5 or any other certificate, such vetting shall be based on the documents and information provided by the respective Architect, Engineer, Chartered Accountant or other professional. The responsibility for the correctness, authenticity, professional opinion and certification of such documents shall remain with the respective issuing professional.",
+  "Draft Templates: Wherever the scope provides for preparation of draft templates of Form 1, Form 2 or Form 3, such drafts shall contain only basic project particulars and shall not include financial, technical or other substantive values unless specifically stated in the selected package. Such drafts shall not constitute statutory certificates or professional certifications.",
+  "Third-Party Professionals: Where services require certification, valuation, audit, architectural certification, engineering certification, accounting certification, legal opinion or any other professional certification, the same shall be provided by the appropriately qualified professional. Any fees payable to such third-party professionals shall be borne separately by the Client, unless expressly included in the selected package.",
+  "Additional Services: Any work arising due to show-cause notices, abeyance proceedings, project extension, deregistration, project closure, change of promoter, removal of promoter/partner/director, Section 14(2) amendment, hearings, litigation, complaints, appeals, adjudication proceedings or any other special proceeding shall be outside the regular retainer unless specifically included in the selected package.",
+  "Government / Statutory Fees: All Government fees, MahaRERA fees, statutory charges, portal charges, stamp duty, notarisation charges, courier expenses and other applicable third-party expenses shall be payable separately by the Client, unless expressly stated otherwise in the quotation or Work Order.",
+  "Communication & Authorisation: The Client shall nominate an authorised representative for communication and coordination. Instructions received from such authorised representative through email, written communication or other mutually agreed communication channels may be relied upon by RERA Easy for carrying out the engagement.",
+  "MahaRERA Profile Access & Authorisation: By appointing RERA Easy, the Client shall be deemed to have provided consent and authorisation to RERA Easy and its authorised professionals, organisations or individuals to access the Project's MahaRERA profile/portal during the tenure of the engagement for carrying out the agreed services. Such access shall include reviewing, updating, modifying, uploading, submitting, downloading and maintaining project information, documents and records as required. The Client shall provide all necessary credentials, OTPs, permissions and cooperation for such activities.",
+  "Submission & Filing: Wherever filing or submission forms part of the scope, RERA Easy shall undertake such filing based on the information and documents approved and provided by the Client. The Client shall remain responsible for reviewing and confirming the accuracy of information wherever such confirmation is requested prior to submission.",
+  "Compliance Responsibility: Advice provided by RERA Easy is based on the applicable laws, rules, regulations, circulars, orders and information available at the relevant time. The Client shall remain responsible for implementation of such advice and for ensuring ongoing compliance with all statutory requirements applicable to the Project.",
+  "Change in Law / Regulations: Any material change in law, regulation, circular, order, procedure or portal requirements after issuance of this quotation which substantially increases the scope or effort required may be discussed separately and may attract additional professional fees, subject to mutual agreement.",
+  "Confidentiality: RERA Easy shall maintain reasonable confidentiality with respect to documents and information received from the Client in connection with the engagement, except where disclosure is required for statutory compliance, submission to an authority, professional consultation, legal obligation or with the Client's consent.",
+  "Indemnity by Client: The Client shall indemnify and hold harmless RERA Easy, its partners, employees and representatives from claims, losses, penalties, liabilities, costs or proceedings arising from inaccurate information, fraudulent or unauthorised documents, concealment of material facts, non-compliance by the Client, or acts or omissions of the Client or its appointed professionals, except to the extent directly caused by the proven gross negligence or wilful misconduct of RERA Easy.",
+  "No Legal Representation: Unless specifically agreed in writing, the services under this quotation do not constitute legal representation before any court, tribunal, adjudicating authority or regulatory proceeding. Legal opinions, drafting of legal documents and representation by advocates shall be separately appointed and charged.",
+  "Suspension of Services: RERA Easy may suspend or withhold services, submissions or deliverables in case of non-payment, non-cooperation, failure to provide required documents or information, or where proceeding further may result in submission of incomplete, inaccurate or non-compliant information.",
+  "Termination: Either party may terminate the engagement by providing written notice, subject to settlement of all professional fees and expenses incurred up to the effective date of termination. Fees paid for services already rendered or work already undertaken shall not be refundable.",
+  "Force Majeure: RERA Easy shall not be responsible for delay or failure in performance caused by circumstances beyond its reasonable control, including changes in Government policy, authority restrictions, portal outages, system failures, strikes, natural events, governmental actions or other force majeure events.",
+  "Electronic Records & Communication: Email communications, electronic documents, acknowledgements and submissions exchanged through authorised communication channels shall be considered valid records of the engagement, subject to applicable law.",
+  "Dispute Resolution & Jurisdiction: Any dispute or difference arising out of or in connection with the engagement shall, in the first instance, be mutually discussed and resolved between the parties. Subject to applicable law, courts and competent authorities having jurisdiction at Navi Mumbai, Maharashtra shall have jurisdiction over matters arising in connection with the engagement.",
+  "Commencement & Acceptance of Engagement: Upon confirmation of this quotation by the Client, RERA Easy shall issue a Work Order incorporating the mutually agreed scope, commercial terms, payment schedule and tenure of the engagement. The Work Order shall be printed on the Client's company letterhead, duly signed and stamped by the authorised representative of the Client, and returned to RERA Easy. The engagement shall be considered officially commenced only upon receipt of the duly executed Work Order by RERA Easy.",
+].join("\n");
+
+const TERMS_GENERAL = [
+  "Scope of Services: The scope of services shall be limited to the specific RERA service mentioned in this quotation. Any service or activity not expressly included in the scope shall be treated as an additional service and shall be undertaken only upon mutual confirmation and applicable additional fees.",
+  "Project-Specific Engagement: The professional fees quoted are applicable to the specific Project and service mentioned in the quotation. Any additional project, registration, phase, application or separate matter shall be charged separately.",
+  "Validity of Engagement: The validity and applicable period for completion of the service shall be as mutually agreed between the parties and shall be expressly mentioned in the Work Order, wherever applicable.",
+  "Professional Fees & Taxes: The professional fees mentioned in this quotation are exclusive of applicable Government fees, MahaRERA fees, statutory charges, portal charges and other out-of-pocket expenses incurred specifically in connection with the service. GST at 18% or such other applicable rate shall be charged additionally.",
+  "Payment Terms: The payment terms and schedule shall be mutually discussed and agreed upon between the parties and shall be expressly mentioned in the Work Order, wherever applicable.",
+  "Documents & Information: The Client shall provide all documents and information required for the specific service, including applicable approvals, sanctioned plans, CC, OC, Form 1, Form 2, Form 3, Form 2A, Form 5, consent letters, Index II, carpet area statements, bank details, promoter/partner/director details and other documents as may be required by MahaRERA.",
+  "Accuracy and Completeness of Documents: RERA Easy shall rely upon the documents and information provided by the Client and its appointed professionals. RERA Easy shall not be responsible for any discrepancy, rejection, objection, delay, penalty or adverse consequence arising from incorrect, incomplete, outdated, misleading or delayed information or documents provided by the Client or any third party.",
+  "Professional Certificates: Where Form 1, Form 2, Form 3, Form 2A, Form 5 or any other professional certificate is required, the responsibility for preparation, accuracy, contents and certification of such certificate shall remain with the respective Architect, Engineer, Chartered Accountant or other issuing professional. RERA Easy's role, where applicable, shall be limited to scrutiny, coordination, compilation and/or submission as specifically included in the scope.",
+  "Client's Statutory Responsibility: The engagement of RERA Easy shall not relieve the Promoter, its directors, partners, authorised representatives or appointed professionals of their statutory obligations under the RERA Act, Rules, Regulations, Orders, Circulars or directions issued by MahaRERA or any other competent authority.",
+  "MahaRERA Profile Access & Authorisation: By appointing RERA Easy, the Client shall be deemed to have provided consent and authorisation to RERA Easy and its authorised professionals, organisations or individuals to access the Project's MahaRERA profile/portal for carrying out the agreed services. Such access shall include reviewing, updating, modifying, uploading, submitting, downloading and maintaining project information, documents and records as required. The Client shall provide all necessary credentials, OTPs, permissions and cooperation for such activities.",
+  "Allottee Consents: Wherever allottee consent is required, including for Project Extension under Section 7(3) or Project Correction under Section 14(2), the Client shall be responsible for obtaining the requisite consents and ensuring their validity, completeness and authenticity. RERA Easy may provide drafting and procedural assistance where specifically included in the scope.",
+  "Scrutiny and Queries: RERA Easy shall provide assistance in responding to queries or observations raised during the scrutiny of the specific application to the extent covered under the agreed scope. Additional or repeated scrutiny, fresh objections, hearings or requirements arising due to changes or deficiencies in the documents provided by the Client may be treated as additional services.",
+  "Authority Timelines: Any timeline communicated by RERA Easy shall be dependent upon timely receipt of complete information and documents from the Client and the processing time and requirements of MahaRERA. RERA Easy shall not be responsible for delays caused by MahaRERA, Government authorities, banks, professionals, portal/system issues or circumstances beyond its reasonable control.",
+  "Additional Services: Any work arising beyond the agreed scope, including additional hearings, repeated submissions, show-cause notices, complaints, appeals, litigation, adjudication proceedings, additional applications, substantial changes to the project or documents, or other regulatory proceedings shall be treated as an additional service and may attract additional professional fees, subject to mutual agreement.",
+  "Government and Third-Party Charges: All Government fees, MahaRERA fees, statutory charges, portal charges, notarisation charges, registration charges, SRO fees, courier expenses and other applicable third-party expenses shall be payable separately by the Client unless expressly included in the quotation.",
+  "Communication & Authorisation: The Client shall nominate an authorised representative for communication and coordination. Instructions received from such authorised representative through email, written communication or other mutually agreed communication channels may be relied upon by RERA Easy for carrying out the services.",
+  "Submission & Filing: Wherever filing or submission forms part of the scope, RERA Easy shall undertake such filing based on the information and documents provided/approved by the Client. The Client shall remain responsible for verifying the accuracy and completeness of the information before submission.",
+  "Compliance Responsibility: The Client shall remain responsible for ensuring compliance with all applicable provisions of the RERA Act, Rules, Regulations, Orders, Circulars and directions applicable to the Project. Advice or assistance provided by RERA Easy shall not transfer such statutory responsibility to RERA Easy.",
+  "Change in Law / Regulations: Any material change in law, regulation, circular, order, procedure or MahaRERA portal requirements after issuance of this quotation which substantially increases the scope or effort required may be discussed separately and may attract additional professional fees, subject to mutual agreement.",
+  "Confidentiality: RERA Easy shall maintain reasonable confidentiality with respect to documents and information received from the Client in connection with the services, except where disclosure is required for statutory compliance, submission to an authority, professional consultation, legal obligation or with the Client's consent.",
+  "Indemnity by Client: The Client shall indemnify and hold harmless RERA Easy, its partners, employees and representatives from claims, losses, penalties, liabilities, costs or proceedings arising from inaccurate information, fraudulent or unauthorised documents, concealment of material facts, non-compliance by the Client, or acts or omissions of the Client or its appointed professionals, except to the extent directly caused by the proven gross negligence or wilful misconduct of RERA Easy.",
+  "No Legal Representation: Unless specifically agreed in writing, the services under this quotation do not constitute legal representation before any court, tribunal, adjudicating authority or regulatory proceeding. Legal opinions, legal drafting and representation by advocates shall be separately appointed and charged.",
+  "Suspension of Services: RERA Easy may suspend or withhold services, submissions or deliverables in case of non-payment, non-cooperation, failure to provide required documents or information, or where proceeding further may result in submission of incomplete, inaccurate or non-compliant information.",
+  "Termination / Cancellation: Either party may terminate or cancel the engagement by providing written notice, subject to settlement of all professional fees and expenses incurred up to the effective date of termination. Fees paid for services already rendered or work already undertaken shall not be refundable.",
+  "Force Majeure: RERA Easy shall not be responsible for delay or failure in performance caused by circumstances beyond its reasonable control, including changes in Government policy, authority restrictions, portal outages, system failures, strikes, natural events, governmental actions or other force majeure events.",
+  "Electronic Records & Communication: Email communications, electronic documents, acknowledgements and submissions exchanged through authorised communication channels shall be considered valid records of the engagement, subject to applicable law.",
+  "Dispute Resolution & Jurisdiction: Any dispute or difference arising out of or in connection with the services shall, in the first instance, be mutually discussed and resolved between the parties. Subject to applicable law, courts and competent authorities having jurisdiction at Navi Mumbai, Maharashtra shall have jurisdiction over matters arising in connection with the engagement.",
+  "Commencement of Services: Upon confirmation of this quotation by the Client, RERA Easy shall issue a Work Order, wherever applicable, incorporating the mutually agreed scope, commercial terms and payment schedule. The Work Order shall be printed on the Client's company letterhead, duly signed and stamped by the authorised representative of the Client, and returned to RERA Easy. The services shall officially commence upon receipt of the duly executed Work Order by RERA Easy.",
+].join("\n");
+
+/* the pre-2026 six-line default — recognised so old saved quotes still
+   swap to the new stock sets instead of being treated as hand-edited */
+const TERMS_LEGACY = [
   "The above quotation is applicable to the Project and Promoter mentioned above only.",
   "The prices mentioned above are in particular to One Project per year.",
   "The prices mentioned above DO NOT include Government Fees.",
@@ -885,6 +952,24 @@ const DEFAULT_TERMS = [
   "Payment is due at the initiation of services, followed by annual payments thereafter.",
   "The services outlined above are included within the project scope. Any additional services not specified are excluded from this scope.",
 ].join("\n");
+
+const DEFAULT_TERMS = TERMS_GENERAL;
+
+/* retainer package selected -> retainer T&C; otherwise the general set.
+   Hand-edited terms are left alone: the swap only happens while the box
+   still holds one of the stock sets (or is empty / the legacy default). */
+function syncTermsToSelection() {
+  const ta = $("terms");
+  if (!ta) return;
+  const cur = ta.value.trim();
+  const stock = [TERMS_GENERAL, TERMS_RETAINER, TERMS_LEGACY, ""].map((t) => t.trim());
+  if (!stock.includes(cur)) return;
+  const want = selectedKeys().some(isYearly) ? TERMS_RETAINER : TERMS_GENERAL;
+  if (ta.value !== want) {
+    ta.value = want;
+    syncMeta();
+  }
+}
 
 let RATES = null;
 
@@ -1152,6 +1237,7 @@ function selectService(key, amount, subText, customAmt, secs, headText, included
   addOfferingHead(key, headText);
   rebuildDocs();
   recalc();
+  syncTermsToSelection();
 }
 
 /* every offering prints a big heading above its cards */
@@ -1211,6 +1297,7 @@ function deselectService(key) {
     });
   rebuildDocs();
   recalc();
+  syncTermsToSelection();
 }
 
 /* ---------- offering groups: sections + their custom items ---------- */
@@ -1386,6 +1473,15 @@ function scopeListHtml(subText) {
   const lines = String(subText).split("\n").map((l) => l.trim()).filter(Boolean);
   return lines
     .map((l) => {
+      // pending filing lines keep their bold form / quarters / fee on reload
+      if (/^(QPR|APR) - Form /.test(l)) {
+        const h = escapeHtml(l)
+          .replace(/^((QPR|APR) - Form \w+)/, "<b>$1</b>")
+          .replace(/ of (all Quarters)/g, " of <b>$1</b>")
+          .replace(/ [—-] (₹[\d,]+\/-)\s*$/, " - <b>$1</b>")
+          .replace(/ for ([^;]+?)(?=;|<b>₹| - <b>|$)/g, " for <b>$1</b>");
+        return `<li>${h}</li>`;
+      }
       const m = /^([^:]{2,60}):\s*(.+)$/.exec(l);
       return m
         ? `<li><b>${escapeHtml(m[1])}:</b> ${escapeHtml(m[2])}</li>`
@@ -1438,9 +1534,10 @@ const PENDING_TREE = [
   ]},
 ];
 
-/* flat chip design — no nested indentation, sized for the narrow
-   sidebar: QPR/APR tabs, then form chips, then one row per year with
-   its own Q1-Q4 toggle chips */
+/* accordion design sized for the narrow sidebar: QPR/APR tabs, then
+   one collapsible section per form. Each form header carries its own
+   ₹ fee input; the fee prints on that form's line in the card and the
+   sum of all form fees is folded into the offering's heading price. */
 function buildPendingPicker(key) {
   const years = fyOptions();
   const yearRows = (withQ) =>
@@ -1459,13 +1556,20 @@ function buildPendingPicker(key) {
       )
       .join("") +
     `</div>`;
+  const CHEV = `<svg class="pp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>`;
   const pane = (g, forms, withQ) => `
     <div class="pp-pane" data-g="${g}"${g === "QPR" ? "" : " hidden"}>
-      <div class="pp-forms">${forms
-        .map((f, i) => `<button type="button" class="pp-formchip${i === 0 ? " on" : ""}" data-f="${f}">${f}</button>`)
-        .join("")}</div>
       ${forms
-        .map((f, i) => `<div class="pp-years" data-f="${f}"${i === 0 ? "" : " hidden"}>${yearRows(withQ)}</div>`)
+        .map(
+          (f) => `
+      <div class="pp-form" data-f="${f}">
+        <div class="pp-fhead">
+          <button type="button" class="pp-ftoggle">${CHEV}<span class="pp-fname">${f}</span><span class="pp-fcount" hidden></span></button>
+          <label class="pp-fprice" title="Fee for ${f} — prints in the card and adds to the offering price">&#8377;<input type="text" class="pp-fee" inputmode="decimal" placeholder="0" size="6"></label>
+        </div>
+        <div class="pp-fbody" hidden>${yearRows(withQ)}</div>
+      </div>`
+        )
         .join("")}
     </div>`;
 
@@ -1481,6 +1585,14 @@ function buildPendingPicker(key) {
     ${pane("QPR", ["Form 1", "Form 2", "Form 3"], true)}
     ${pane("APR", ["Form 5", "Form 2A"], false)}`;
 
+  const updateCount = (formEl) => {
+    const n = formEl.querySelectorAll(".pp-ychip.on").length;
+    const badge = formEl.querySelector(".pp-fcount");
+    badge.hidden = n === 0;
+    badge.textContent = n === 1 ? "1 yr" : n + " yrs";
+    formEl.classList.toggle("has-sel", n > 0);
+  };
+
   picker.addEventListener("click", (e) => {
     const tab = e.target.closest(".pp-tab");
     if (tab) {
@@ -1488,11 +1600,15 @@ function buildPendingPicker(key) {
       picker.querySelectorAll(".pp-pane").forEach((p) => (p.hidden = p.dataset.g !== tab.dataset.g));
       return;
     }
-    const fchip = e.target.closest(".pp-formchip");
-    if (fchip) {
-      const pn = fchip.closest(".pp-pane");
-      pn.querySelectorAll(".pp-formchip").forEach((c) => c.classList.toggle("on", c === fchip));
-      pn.querySelectorAll(".pp-years").forEach((yl) => (yl.hidden = yl.dataset.f !== fchip.dataset.f));
+    const ftog = e.target.closest(".pp-ftoggle");
+    if (ftog) {
+      // accordion: opening one form closes its siblings
+      const formEl = ftog.closest(".pp-form");
+      const open = formEl.classList.contains("open");
+      formEl.closest(".pp-pane").querySelectorAll(".pp-form").forEach((fe) => {
+        fe.classList.toggle("open", fe === formEl && !open);
+        fe.querySelector(".pp-fbody").hidden = !(fe === formEl && !open);
+      });
       return;
     }
     const qchip = e.target.closest(".pp-qchip");
@@ -1508,8 +1624,20 @@ function buildPendingPicker(key) {
       if (!ychip.classList.contains("on"))
         row.querySelectorAll(".pp-qchip.on").forEach((c) => c.classList.remove("on"));
     }
+    updateCount(row.closest(".pp-form"));
     const card = serviceCard(key);
     if (card) rebuildPendingLines(card, picker);
+  });
+
+  picker.addEventListener("input", (e) => {
+    if (!e.target.classList.contains("pp-fee")) return;
+    const card = serviceCard(key);
+    if (card) rebuildPendingLines(card, picker);
+  });
+  picker.addEventListener("focusout", (e) => {
+    if (!e.target.classList.contains("pp-fee")) return;
+    const v = parseAmt(e.target.value);
+    e.target.value = v ? fmt0(v) : "";
   });
   return picker;
 }
@@ -1517,16 +1645,20 @@ function buildPendingPicker(key) {
 function rebuildPendingLines(card, picker) {
   pushUndo();
   const lines = [];
+  let feeTotal = 0;
   picker.querySelectorAll(".pp-pane").forEach((pn) => {
     const g = pn.dataset.g;
-    pn.querySelectorAll(".pp-years").forEach((yl) => {
-      const f = yl.dataset.f;
-      yl.querySelectorAll(".pp-yr").forEach((row) => {
+    pn.querySelectorAll(".pp-form").forEach((formEl) => {
+      const f = formEl.dataset.f;
+      const fee = parseAmt(formEl.querySelector(".pp-fee")?.value);
+      // ONE line per form: every selected year becomes a segment on it
+      const segs = [];
+      formEl.querySelectorAll(".pp-yr").forEach((row) => {
         if (!row.querySelector(".pp-ychip.on")) return;
         const y = row.dataset.y;
         const start = parseInt(y, 10);
         if (g === "APR") {
-          lines.push(`${g} - ${f} of Financial Year ${y}`);
+          segs.push(`Financial Year ${y}`);
           return;
         }
         const qLabel = {
@@ -1536,25 +1668,65 @@ function rebuildPendingLines(card, picker) {
           Q4: `March ${start + 1} (Q4)`,
         };
         const qs = [...row.querySelectorAll(".pp-qchip.on")].map((c) => c.dataset.q);
-        let line = `${g} - ${f} of Financial Year ${y}`;
-        line += qs.length === 0 || qs.length === 4
-          ? " of all Quarters"
-          : ` for ${qs.map((q) => qLabel[q]).join(", ")}`;
-        lines.push(line);
+        segs.push(
+          `Financial Year ${y}` +
+            (qs.length === 0 || qs.length === 4
+              ? ` of <b>all Quarters</b>`
+              : ` for <b>${qs.map((q) => qLabel[q]).join(", ")}</b>`)
+        );
       });
+      if (!segs.length) return;
+      let line = `<b>${g} - ${f}</b> of ${segs.join("; ")}`;
+      if (fee > 0) {
+        line += ` - <b>₹${fmt0(fee)}/-</b>`;
+        feeTotal += fee;
+      }
+      lines.push(line);
     });
   });
   const ol = card.querySelector(".card-list");
+  // first rebuild after a reload: recover the fees already baked into
+  // the printed lines so they are not added to the pill twice
+  if (card.dataset.pendingFees === undefined) {
+    let prev = 0;
+    [...ol.querySelectorAll("li")].forEach((li) => {
+      const t = li.textContent.trim();
+      if (!/^(Pending )?(QPR|APR) - /.test(t)) return;
+      const m = t.match(/[—-]\s*₹([\d,]+)\/-\s*$/);
+      if (m) prev += parseAmt(m[1]);
+    });
+    card.dataset.pendingFees = String(prev);
+  }
   [...ol.querySelectorAll("li")].forEach((li) => {
     const t = li.textContent.trim();
     if (/^(Pending )?(QPR|APR) - /.test(t)) li.remove();
   });
+  // real selections replace the generic "QPR/APR Filings" intro lines;
+  // clearing every selection brings the intro back
+  const introRe = /^(QPR|APR) Filings:/;
+  if (lines.length) {
+    [...ol.querySelectorAll("li")].forEach((li) => {
+      if (introRe.test(li.textContent.trim())) li.remove();
+    });
+  } else if (![...ol.querySelectorAll("li")].some((li) => introRe.test(li.textContent.trim()))) {
+    ol.insertAdjacentHTML("afterbegin", scopeListHtml((CATALOGUE[card.dataset.key]?.subs || []).join("\n")));
+  }
   lines.forEach((l) => {
     const li = document.createElement("li");
-    li.textContent = l;
+    li.innerHTML = l;
     ol.appendChild(li);
   });
   if (!ol.querySelector("li")) ol.innerHTML = "<li><br></li>";
+  // heading price = whatever base the user set + the filing fees
+  const amtInp = card.querySelector('input.i-amt:not([type="hidden"])');
+  if (amtInp) {
+    const base = Math.max(0, parseAmt(amtInp.value) - parseAmt(card.dataset.pendingFees));
+    amtInp.value = fmt0(base + feeTotal);
+    const panelAmt = document.querySelector(`.svc-amt[data-key="${card.dataset.key}"]`);
+    if (panelAmt && !panelAmt.hidden && document.activeElement !== panelAmt)
+      panelAmt.value = fmt0(base + feeTotal);
+  }
+  card.dataset.pendingFees = String(feeTotal);
   recalc();
 }
 
@@ -1730,6 +1902,7 @@ function rebuildExclusions() {
     });
   });
   const list = $("exclList");
+  document.querySelectorAll('ol.terms-cont[data-cont-for="exclList"]').forEach((c) => c.remove());
   list.innerHTML = "";
   lines.forEach((l) => {
     const li = document.createElement("li");
@@ -2617,16 +2790,22 @@ function syncMeta() {
   $("metaDate").textContent = prettyDate($("quoteDate").value);
   $("metaValid").textContent = prettyDate($("validTill").value);
 
-  // terms: one per line, leading numbering stripped (list renders badges)
+  // terms: one per line, leading numbering stripped (list renders
+  // badges); a "Title: body" line prints with a bold title
   const list = $("termsList");
+  // a rebuild replaces every row — page-split continuations of the old
+  // rows must go with them, or their clauses would print twice
+  document.querySelectorAll('ol.terms-cont[data-cont-for="termsList"]').forEach((c) => c.remove());
   list.innerHTML = "";
   String($("terms").value)
     .split("\n")
-    .map((l) => l.trim().replace(/^\d+[\.\)]\s*/, ""))
+    .map((l) => l.trim().replace(/^\d+[\.\)]\s*/, "").replace(/\*\*/g, ""))
     .filter(Boolean)
     .forEach((t) => {
       const li = document.createElement("li");
-      li.textContent = t;
+      const m = /^([^:]{2,60}):\s*(.+)$/.exec(t);
+      if (m) li.innerHTML = `<b>${escapeHtml(m[1])}:</b> ${escapeHtml(m[2])}`;
+      else li.textContent = t;
       list.appendChild(li);
     });
 
@@ -3149,6 +3328,19 @@ function outerH(el) {
   return el.offsetHeight + mt + mb;
 }
 
+/* what the block costs on PAPER: screen-only child rows (the add-a-
+   document input and friends) collapse in print, so their height must
+   not eat the page budget — that slack printed as a bottom gap */
+function printH(el) {
+  let h = outerH(el);
+  el.querySelectorAll(":scope > .no-print").forEach((n) => {
+    const cs = getComputedStyle(n);
+    if (cs.position === "static" || cs.position === "relative")
+      h -= n.getBoundingClientRect().height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+  });
+  return Math.max(0, h);
+}
+
 function isFurniture(el) {
   return el.classList.contains("page-letterhead") || el.classList.contains("prop-footer");
 }
@@ -3209,6 +3401,31 @@ function trySplitCard(card, remaining) {
   return cont;
 }
 
+/* same idea for the bare Terms/Exclusions <ol>: keep what fits, the
+   rest continues on the next page with the numbering carried over */
+function trySplitTerms(ol, remaining) {
+  const lis = [...ol.children].filter((n) => n.tagName === "LI");
+  if (lis.length < 2) return null;
+  const top = ol.getBoundingClientRect().top;
+  let fit = 0;
+  for (const li of lis) {
+    if (li.getBoundingClientRect().bottom - top + 12 > remaining) break;
+    fit++;
+  }
+  if (fit < 1) return null;
+  if (fit >= lis.length) fit = lis.length - 1;
+
+  const base = parseInt((ol.style.counterReset || "term 0").split(" ")[1] || "0", 10);
+  const cont = document.createElement("ol");
+  cont.className = ol.className;
+  cont.classList.add("terms-cont");
+  cont.dataset.contFor = ol.dataset.contFor || ol.id;
+  cont.style.counterReset = "term " + (base + fit);
+  lis.slice(fit).forEach((li) => cont.appendChild(li));
+  ol.after(cont);            // in the DOM at once, so it measures
+  return cont;
+}
+
 /* re-packing detaches and re-appends every block, which blurs the
    focused element and fires focusout on the container — without the
    PAGINATING guard that focusout schedules ANOTHER repack, looping
@@ -3248,6 +3465,12 @@ function repaginateCore() {
       if (list) [...cont.querySelectorAll(".card-list > li")].forEach((li) => list.appendChild(li));
       cont.remove();
     });
+    // terms/exclusions continuations fold back the same way
+    container.querySelectorAll("ol.terms-cont").forEach((cont) => {
+      const src = document.getElementById(cont.dataset.contFor);
+      if (src) [...cont.children].forEach((li) => src.appendChild(li));
+      cont.remove();
+    });
   }
 
   // newly added cards start inside the #svcCards marker — lift them
@@ -3277,11 +3500,19 @@ function repaginateCore() {
       pages[pages.length - 1].push(b);
       continue;
     }
-    const h = outerH(b);
+    // screen-only widget blocks (add buttons, restore bars, the filing
+    // picker) are invisible in print and cost NO page budget
+    const screenOnly =
+      b.classList.contains("offering-add") ||
+      b.classList.contains("restore-bar") ||
+      b.classList.contains("btn-add") ||
+      b.classList.contains("pending-picker") ||
+      b.classList.contains("no-print");
+    const h = screenOnly ? 0 : printH(b);
     const cur = pages[pages.length - 1];
     // every offering begins on a fresh page — its heading never
-    // continues below other content
-    if (b.classList.contains("offering-head") && used > 0) {
+    // continues below other content; Terms & Conditions likewise
+    if ((b.classList.contains("offering-head") || b.id === "termsHead") && used > 0) {
       pages.push([b]);
       used = h;
       continue;
@@ -3289,21 +3520,27 @@ function repaginateCore() {
     // a block's bottom margin is invisible at the page's bottom edge —
     // let it (plus a little slack) overflow rather than waste the page
     const mb = parseFloat(getComputedStyle(b).marginBottom) || 0;
+    // the long Terms/Exclusions list never fits as one block — keep what
+    // fits and continue on the next page (a continuation that is still
+    // too tall comes back through this same branch and splits again)
+    if (
+      b.tagName === "OL" &&
+      b.classList.contains("terms-list") &&
+      h - mb > budget - used + 16 &&
+      budget - used >= 120
+    ) {
+      const cont = trySplitTerms(b, budget - used);
+      if (cont) {
+        cur.push(b);
+        blocks.splice(i + 1, 0, cont);
+        pages.push([]);
+        used = 0;
+        continue;
+      }
+    }
     if (h - mb <= budget - used + 16 || !cur.length) {
       cur.push(b);
       used += h;
-      continue;
-    }
-    // screen-only widgets (add buttons, restore bars) are invisible in
-    // print, so they cost NO page budget — counting them made pages
-    // look full and pushed printable content to the next page
-    if (
-      b.classList.contains("offering-add") ||
-      b.classList.contains("restore-bar") ||
-      b.classList.contains("btn-add") ||
-      b.classList.contains("pending-picker")
-    ) {
-      cur.push(b);
       continue;
     }
     // closing blocks (per-offering fee strips, sign-off) never sit
@@ -3540,8 +3777,8 @@ function buildWordHtml() {
     `<i style="font-size:8.5pt;color:${soft}">${escapeHtml($("amountWords").textContent)}</i></td>` +
     `<td align="right" style="background:#fdf6e0;font-size:20pt;font-weight:bold;color:${ink};padding:10pt 12pt">${escapeHtml($("tFee").textContent)}</td></tr></table>` +
     ($("docsBlock").classList.contains("empty") ? "" : head("Annexure B · Documents Required") + `<ul>${list("#docsList li")}</ul>`) +
-    head("Terms & Conditions") + `<ol>${list("#termsList li")}</ol>` +
-    ($("exclBlock").classList.contains("empty") ? "" : head("Exclusions") + `<ol>${list("#exclList li")}</ol>`) +
+    head("Terms & Conditions") + `<ol>${list('#termsList li, ol.terms-cont[data-cont-for="termsList"] li')}</ol>` +
+    ($("exclBlock").classList.contains("empty") ? "" : head("Exclusions") + `<ol>${list('#exclList li, ol.terms-cont[data-cont-for="exclList"] li')}</ol>`) +
     `<hr style="border:0.75pt solid ${ink}">` +
     `<table width="100%"><tr><td><span style="color:${soft}">Thanks &amp; regards,</span><br><b style="font-size:15pt;color:${ink}">${escapeHtml((document.querySelector(".signoff-name") || { innerText: "RERA Easy" }).innerText)}</b></td>` +
     `<td align="right" style="font-size:9.5pt">${signRight}</td></tr></table>` +
