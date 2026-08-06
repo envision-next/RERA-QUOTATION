@@ -887,9 +887,10 @@ let OTHER = {};
 function otherState(pkg) {
   if (!OTHER[pkg])
     OTHER[pkg] = {
-      extension: { on: false, count: 1 },
-      correction: { on: false, count: 1 },
-      closure: { on: false, count: 1 },
+      priced: false, // false = "Included in our scope", true = per-service prices
+      extension: { on: false, count: 1, price: 0 },
+      correction: { on: false, count: 1, price: 0 },
+      closure: { on: false, count: 1, price: 0 },
     };
   return OTHER[pkg];
 }
@@ -1175,8 +1176,14 @@ function renderServicePicker() {
 function appendOtherServicesRows(hostEl, pkg) {
   const st = otherState(pkg);
   const oh = document.createElement("div");
-  oh.className = "svc-group";
-  oh.textContent = "Other Services";
+  oh.className = "svc-group osvc-head";
+  // Included <-> Priced mode toggle: priced mode opens a ₹ box per service
+  oh.innerHTML = `<span>Other Services</span><button type="button" class="osvc-mode${st.priced ? " on" : ""}" title="Switch between Included in our scope and per-service prices">${st.priced ? "Priced" : "Included"}</button>`;
+  oh.querySelector(".osvc-mode").addEventListener("click", () => {
+    st.priced = !st.priced;
+    buildSubRows(pkg, hostEl); // re-render the dropdown in the new mode
+    refreshOtherServices();
+  });
   hostEl.appendChild(oh);
   Object.keys(OTHER_DEFS).forEach((okey) => {
     const row = document.createElement("div");
@@ -1186,15 +1193,20 @@ function appendOtherServicesRows(hostEl, pkg) {
         <input type="checkbox" class="other-check" data-okey="${okey}" data-pkg="${pkg}"${st[okey].on ? " checked" : ""}>
         <span class="svc-name">${escapeHtml(OTHER_DEFS[okey].name)}</span>
       </label>
-      ${OTHER_DEFS[okey].noCount
+      ${OTHER_DEFS[okey].noCount || st.priced
         ? ""
         : `<input type="number" class="svc-amt other-count" data-okey="${okey}" data-pkg="${pkg}" min="1" step="1" value="${st[okey].count}" title="No. of times included in the contract"${st[okey].on ? "" : " hidden"}>`}
+      ${st.priced
+        ? `<input type="text" class="svc-amt other-price" data-okey="${okey}" data-pkg="${pkg}" inputmode="decimal" placeholder="0" title="Price for ${escapeAttr(OTHER_DEFS[okey].name)}" value="${st[okey].price ? fmt0(st[okey].price) : ""}"${st[okey].on ? "" : " hidden"}>`
+        : ""}
     `;
     hostEl.appendChild(row);
     const check = row.querySelector(".other-check");
     const cnt = row.querySelector(".other-count");
+    const price = row.querySelector(".other-price");
     check.addEventListener("change", () => {
       setOtherState(pkg, okey, check.checked);
+      if (price) price.hidden = !check.checked;
       refreshOtherServices();
     });
     if (cnt)
@@ -1202,6 +1214,16 @@ function appendOtherServicesRows(hostEl, pkg) {
         otherState(pkg)[okey].count = Math.max(1, parseInt(cnt.value, 10) || 1);
         refreshOtherServices();
       });
+    if (price) {
+      price.addEventListener("input", () => {
+        otherState(pkg)[okey].price = parseAmt(price.value);
+        refreshOtherServices();
+      });
+      price.addEventListener("blur", () => {
+        const v = parseAmt(price.value);
+        price.value = v ? fmt0(v) : "";
+      });
+    }
   });
 }
 
@@ -1294,15 +1316,13 @@ function offeringHead(key) {
 }
 
 /* when inserting before another offering's first card, go above its
-   heading too — otherwise the new cards land between them */
+   heading too — otherwise the new cards land between them. The head is
+   looked up by key: after pagination it may sit on an EARLIER sheet
+   than the card, and anchoring on the card alone would wedge the new
+   offering between the two (heading orphaned above foreign cards). */
 function anchorWithHead(anchorCard) {
-  const prev = anchorCard.previousElementSibling;
-  return prev &&
-    prev.classList &&
-    prev.classList.contains("offering-head") &&
-    prev.dataset.key === anchorCard.dataset.key
-    ? prev
-    : anchorCard;
+  const key = anchorCard.dataset.key || anchorCard.dataset.parent;
+  return (key && offeringHead(key)) || anchorCard;
 }
 
 function addOfferingHead(key, headText) {
@@ -1522,6 +1542,12 @@ function cardSubLines(card) {
     .filter(Boolean);
 }
 
+/* every currency amount in running text prints bold — the <b> ink is
+   pure black (#111), matching the amount pills */
+function boldAmounts(s) {
+  return s.replace(/((?:₹\s?|INR\s?)?[\d,]{2,}(?:\.\d+)?\/-)/g, "<b>$1</b>");
+}
+
 /* scope lines render numbered; a "Lead-in: detail" line gets a bold lead */
 function scopeListHtml(subText) {
   const lines = String(subText).split("\n").map((l) => l.trim()).filter(Boolean);
@@ -1542,8 +1568,8 @@ function scopeListHtml(subText) {
       }
       const m = /^([^:]{2,60}):\s*(.+)$/.exec(l);
       return m
-        ? `<li><b>${escapeHtml(m[1])}:</b> ${escapeHtml(m[2])}</li>`
-        : `<li>${escapeHtml(l)}</li>`;
+        ? `<li><b>${escapeHtml(m[1])}:</b> ${boldAmounts(escapeHtml(m[2]))}</li>`
+        : `<li>${boldAmounts(escapeHtml(l))}</li>`;
     })
     .join("");
 }
@@ -1579,6 +1605,12 @@ function fyOptions() {
   for (let y = 2017; y <= cur + 10; y++) list.push(y + "-" + String((y + 1) % 100).padStart(2, "0"));
   return list;
 }
+
+const PENDING_FORM_NAMES = {
+  "Form 1": "Architect Certificate",
+  "Form 2": "Engineer Certificate",
+  "Form 3": "CA Certificate",
+};
 
 const PENDING_TREE = [
   { g: "QPR", forms: [
@@ -1711,40 +1743,40 @@ function rebuildPendingLines(card, picker) {
       // the form's fee is PER QUARTER (per year for APR): every selected
       // year prints a heading line, each quarter follows as an indented
       // sub-line with its own price, and every price joins the total.
-      // The combined option prints as if each form was picked alone.
+      // Forms carry their certificate names; the combined option prints
+      // ONE "Form 2 and Form 3" heading with the quarters beneath it.
       const fee = parseAmt(formEl.querySelector(".pp-fee")?.value);
-      const names = f === "Form 2 + Form 3" ? ["Form 2", "Form 3"] : [f];
-      names.forEach((name) => {
-        formEl.querySelectorAll(".pp-yr").forEach((row) => {
-          if (!row.querySelector(".pp-ychip.on")) return;
-          const y = row.dataset.y;
-          const start = parseInt(y, 10);
-          if (g === "APR") {
-            let line = `<b>${g} - ${name}</b> of Financial Year ${y}`;
-            if (fee > 0) {
-              line += ` - <b>₹${fmt0(fee)}/-</b>`;
-              feeTotal += fee;
-            }
-            lines.push({ html: line, sub: false });
-            return;
+      const label = (n) => (PENDING_FORM_NAMES[n] ? `${n} (${PENDING_FORM_NAMES[n]})` : n);
+      const disp = f === "Form 2 + Form 3" ? `${label("Form 2")} and ${label("Form 3")}` : label(f);
+      formEl.querySelectorAll(".pp-yr").forEach((row) => {
+        if (!row.querySelector(".pp-ychip.on")) return;
+        const y = row.dataset.y;
+        const start = parseInt(y, 10);
+        if (g === "APR") {
+          let line = `<b>${g} - ${disp}</b> of Financial Year ${y}`;
+          if (fee > 0) {
+            line += ` - <b>₹${fmt0(fee)}/-</b>`;
+            feeTotal += fee;
           }
-          const qLabel = {
-            Q1: `June ${start} (Q1)`,
-            Q2: `September ${start} (Q2)`,
-            Q3: `December ${start} (Q3)`,
-            Q4: `March ${start + 1} (Q4)`,
-          };
-          let qs = [...row.querySelectorAll(".pp-qchip.on")].map((c) => c.dataset.q);
-          if (!qs.length) qs = ["Q1", "Q2", "Q3", "Q4"]; // whole year = all four
-          lines.push({ html: `<b>${g} - ${name}</b> of Financial Year ${y} for -`, sub: false });
-          qs.forEach((q) => {
-            let ql = qLabel[q];
-            if (fee > 0) {
-              ql += ` - <b>₹${fmt0(fee)}/-</b>`;
-              feeTotal += fee;
-            }
-            lines.push({ html: ql, sub: true });
-          });
+          lines.push({ html: line, sub: false });
+          return;
+        }
+        const qLabel = {
+          Q1: `June ${start} (Q1)`,
+          Q2: `September ${start} (Q2)`,
+          Q3: `December ${start} (Q3)`,
+          Q4: `March ${start + 1} (Q4)`,
+        };
+        let qs = [...row.querySelectorAll(".pp-qchip.on")].map((c) => c.dataset.q);
+        if (!qs.length) qs = ["Q1", "Q2", "Q3", "Q4"]; // whole year = all four
+        lines.push({ html: `<b>${g} - ${disp}</b> of Financial Year ${y} for -`, sub: false });
+        qs.forEach((q) => {
+          let ql = qLabel[q];
+          if (fee > 0) {
+            ql += ` - <b>₹${fmt0(fee)}/-</b>`;
+            feeTotal += fee;
+          }
+          lines.push({ html: ql, sub: true });
         });
       });
     });
@@ -1831,8 +1863,11 @@ function addServiceCard(key, amount, subText, customAmt, included) {
     if (!k) { anchor = el; break; }            // first standalone custom card
     if (ORDER.indexOf(k) > myIdx) { anchor = el; break; }
   }
-  if (anchor) anchor.parentNode.insertBefore(card, anchor);
-  else {
+  if (anchor) {
+    // above the anchor offering's HEADING, wherever pagination left it
+    const at = anchorWithHead(anchor);
+    at.parentNode.insertBefore(card, at);
+  } else {
     const all = [...document.querySelectorAll(".svc-card")];
     if (all.length) all[all.length - 1].after(card);
     else $("svcCards").appendChild(card);
@@ -2411,12 +2446,23 @@ function refreshOtherServices() {
     const st = OTHER[pkg];
     const lines = [];
     if (st) {
-      if (st.extension.on) lines.push(OTHER_DEFS.extension.line(countWord(st.extension.count)));
-      if (st.correction.on) lines.push(OTHER_DEFS.correction.line(countWord(st.correction.count)));
-      if (st.closure.on) lines.push(OTHER_DEFS.closure.line());
+      // priced mode prints each service's own ₹ on its line
+      const tail = (k) => (st.priced && st[k].price > 0 ? ` - ₹${fmt0(st[k].price)}/-` : "");
+      if (st.extension.on) lines.push(OTHER_DEFS.extension.line(countWord(st.extension.count)) + tail("extension"));
+      if (st.correction.on) lines.push(OTHER_DEFS.correction.line(countWord(st.correction.count)) + tail("correction"));
+      if (st.closure.on) lines.push(OTHER_DEFS.closure.line() + tail("closure"));
     }
     return lines;
   };
+  const pkgOtherTotal = (pkg) => {
+    const st = OTHER[pkg];
+    if (!st || !st.priced) return 0;
+    return Object.keys(OTHER_DEFS).reduce((s, k) => s + (st[k].on ? st[k].price || 0 : 0), 0);
+  };
+  const pillHtml = (pkg) =>
+    OTHER[pkg] && OTHER[pkg].priced
+      ? `<div class="card-pill">₹<input type="text" class="i-amt" inputmode="decimal" value="${fmt0(pkgOtherTotal(pkg))}" readonly><span>/-</span></div>`
+      : `<div class="card-pill card-pill-outline">Included in our scope</div>`;
   document.querySelectorAll('.svc-card[data-other="1"]').forEach((card) => {
     const pkg = card.dataset.parent;
     if (!pkgs.includes(pkg) || !pkgLines(pkg).length) removeCardWithConts(card);
@@ -2435,7 +2481,7 @@ function refreshOtherServices() {
       card.innerHTML = `
       <div class="card-head">
         <div class="card-title">Other Services</div>
-        <div class="card-pill card-pill-outline">Included in our scope</div>
+        ${pillHtml(pkg)}
         <button class="row-del no-print" title="Remove Other Services">${ICON_X}</button>
       </div>
       <ol class="card-list" contenteditable="true" spellcheck="false" title="Other services (click to edit)">${html}</ol>
@@ -2452,6 +2498,7 @@ function refreshOtherServices() {
         .querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"]`)
         .forEach((c) => c.remove());
       card.querySelector(".card-list").innerHTML = html;
+      card.querySelector(".card-pill").outerHTML = pillHtml(pkg); // pill follows the mode
     }
   });
   recalc();
@@ -2674,6 +2721,10 @@ function recalc() {
       document
         .querySelectorAll(`.svc-card.custom-card[data-parent="${k}"]:not(.gov-card)`)
         .forEach((c) => lines.push(customLine(c)));
+      // a priced Other Services card bills under its package's name
+      const oc = document.querySelector(`.svc-card[data-other="1"][data-parent="${k}"] input.i-amt`);
+      if (oc && parseAmt(oc.value) > 0)
+        lines.push({ name: "Other Services", amt: parseAmt(oc.value), yr: false });
     });
     document
       .querySelectorAll(".svc-card.custom-card:not([data-parent]):not(.gov-card)")
@@ -2831,8 +2882,10 @@ function pendingDocs() {
       ...card.querySelectorAll(".card-list li"),
       ...document.querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"] .card-list li`),
     ].forEach((li) => {
-      const m = /^(QPR|APR) - (Form \d\w*)/.exec(li.textContent.trim());
-      if (m) forms.add(m[2]);
+      // heading part before "of Financial Year" may name several forms
+      // ("Form 2 (Engineer Certificate) and Form 3 (CA Certificate)")
+      const m = /^(QPR|APR) - (.+?) of Financial/.exec(li.textContent.trim());
+      if (m) [...m[2].matchAll(/Form \d\w*/g)].forEach((x) => forms.add(x[0]));
     });
   }
   if (!forms.size) return CATALOGUE.pending_compliances.docs;
@@ -2934,8 +2987,8 @@ function syncMeta() {
     .forEach((t) => {
       const li = document.createElement("li");
       const m = /^([^:]{2,60}):\s*(.+)$/.exec(t);
-      if (m) li.innerHTML = `<b>${escapeHtml(m[1])}:</b> ${escapeHtml(m[2])}`;
-      else li.textContent = t;
+      if (m) li.innerHTML = `<b>${escapeHtml(m[1])}:</b> ${boldAmounts(escapeHtml(m[2]))}`;
+      else li.innerHTML = boldAmounts(escapeHtml(t));
       list.appendChild(li);
     });
 
@@ -3143,8 +3196,10 @@ function loadQuotationInner(q) {
   } else {
     Object.keys(o).forEach((pkg) => {
       OTHER[pkg] = o[pkg];
+      if (OTHER[pkg].priced === undefined) OTHER[pkg].priced = false;
       Object.keys(OTHER_DEFS).forEach((k) => {
-        if (!OTHER[pkg][k]) OTHER[pkg][k] = { on: false, count: 1 };
+        if (!OTHER[pkg][k]) OTHER[pkg][k] = { on: false, count: 1, price: 0 };
+        if (OTHER[pkg][k].price === undefined) OTHER[pkg][k].price = 0;
       });
     });
   }
@@ -3744,6 +3799,14 @@ function repaginateCore() {
           const usedBefore =
             cur.slice(0, i + 1).reduce((s, el) => s + outerH(el), 0) - outerH(prev);
           cont = trySplitCard(prev, budget - usedBefore);
+        }
+        // the block above may be the Terms/Exclusions list — split IT,
+        // so the sign-off follows the terms tail instead of opening a
+        // page alone
+        if (!cont && prev && prev.tagName === "OL" && prev.classList.contains("terms-list")) {
+          const usedBefore =
+            cur.slice(0, i + 1).reduce((s, el) => s + outerH(el), 0) - outerH(prev);
+          cont = trySplitTerms(prev, budget - usedBefore);
         }
         if (cont || realH > 0) {
           cur.splice(i + 1);

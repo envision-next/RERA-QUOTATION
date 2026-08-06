@@ -1272,7 +1272,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 
 /* --- proposal letter --- */
 .prop-letter { margin-top: 9mm; font-size: 13px; color: #1f2937; line-height: 1.65; }
-.prop-letter p { margin: 0 0 12px; }
+.prop-letter p { margin: 0 0 12px; text-align: justify; }
 
 /* --- gold callout --- */
 .prop-callout {
@@ -1311,7 +1311,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .index-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .index-table td { padding: 8px 10px; border-bottom: 1px solid #f0f1f3; color: #1f2937; }
 .index-table td.ix-no { width: 34px; color: #b8860b; font-weight: 700; }
-.index-table td.ix-amt { text-align: right; font-weight: 700; color: #111; white-space: nowrap; }
+.index-table td.ix-amt { text-align: right; font-weight: 700; color: #000; white-space: nowrap; }
 .index-note { margin: 6px 0 0; font-size: 10.5px; color: #9ca3af; }
 
 /* big per-offering heading above each offering's cards */
@@ -1362,7 +1362,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .card-pill {
   flex: none;
   background: var(--gold);
-  color: #111;
+  color: #000;
   font-weight: 800;
   font-size: 14px;
   border-radius: 999px;
@@ -1377,7 +1377,11 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   font: inherit;
   font-weight: 800;
   text-align: right;
-  color: #111;
+  color: #000;
+  /* Chrome rasterises <input> text lighter than page text — stroke the
+     glyphs so the digits print as solidly black as the ₹ and /- */
+  -webkit-text-fill-color: #000;
+  -webkit-text-stroke: 0.35px #000;
   padding: 0 1px;
 }
 .card-pill .i-amt:focus { outline: none; }
@@ -1433,10 +1437,34 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   align-items: center;
   justify-content: center;
 }
-.card-list li b { color: #111; font-weight: 700; }
+.card-list li b { color: #000; font-weight: 700; }
 /* quarter sub-lines under a pending-filing heading: indented, unnumbered */
 .card-list li.pp-sub { counter-increment: none; padding-left: 54px; }
 .card-list li.pp-sub::before { content: none; }
+
+/* Other Services add-ons: Included <-> Priced mode toggle in the
+   package dropdown; priced mode opens a ₹ box per service */
+.svc-group.osvc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.osvc-mode {
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  color: #9db4c8;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+  transition-property: color, background-color, border-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.osvc-mode.on {
+  color: #10131c;
+  background: linear-gradient(135deg, #f5c518, #e9b308);
+  border-color: transparent;
+}
+.other-price { font-variant-numeric: tabular-nums; }
 .card-list:focus { outline: 2px solid rgba(233, 179, 8, 0.4); border-radius: 6px; }
 .card-list:hover { outline: 1px dashed #f0dfa0; border-radius: 6px; }
 
@@ -1471,7 +1499,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 }
 .offering-fee .of-label { font-weight: 800; font-size: 13.5px; letter-spacing: .4px; text-transform: uppercase; color: #111; }
 .offering-fee .of-note { font-size: 11px; color: #8a6d1a; margin-top: 2px; }
-.offering-fee .of-amt { font-size: 21px; font-weight: 800; color: #111; white-space: nowrap; }
+.offering-fee .of-amt { font-size: 21px; font-weight: 800; color: #000; white-space: nowrap; }
 .offering-fee .of-right {
   display: flex;
   flex-direction: column;
@@ -1488,7 +1516,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 }
 .offering-fee .of-line { display: flex; justify-content: flex-end; align-items: baseline; gap: 10px; }
 .offering-fee .of-line span { font-size: 11px; font-weight: 700; color: #6b5310; }
-.offering-fee .of-line b { font-size: 17px; font-weight: 800; color: #111; }
+.offering-fee .of-line b { font-size: 17px; font-weight: 800; color: #000; }
 
 /* price <-> "Included in our scope" swap button (screen only) */
 .pill-toggle {
@@ -1574,7 +1602,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 }
 .fee-note { margin-top: 3px; font-size: 11.5px; color: var(--gold-deep); }
 .fee-words { margin-top: 6px; font-size: 11.5px; font-style: italic; color: #6b7280; }
-.fee-amount { font-size: 27px; font-weight: 800; color: #111; white-space: nowrap; }
+.fee-amount { font-size: 27px; font-weight: 800; color: #000; white-space: nowrap; }
 /* Payment Summary look (2+ offerings): light gold wash — blends with
    the theme yet reads stronger than the cream per-offering strips */
 .fee-box.grand {
@@ -1585,8 +1613,8 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-box.grand .fee-label { color: #8a6a06; }
 .fee-box.grand .fee-note { color: #8a7a45; }
 .fee-box.grand .fee-words { color: #6b7280; }
-.fee-box.grand .fee-amount { color: #111; }
-.fee-box.grand .fee-line b { color: #111; }
+.fee-box.grand .fee-amount { color: #000; }
+.fee-box.grand .fee-line b { color: #000; }
 .fee-box.grand .fee-line span { color: #8a6a06; }
 
 /* Payment Summary layout: statement style — header row with a gold
@@ -1649,7 +1677,7 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
 .fee-box.gov-box .fee-combined .fee-line { justify-content: space-between; padding: 6px 0; }
 .fee-box.gov-box .fee-combined .fee-line + .fee-line { border-top: 1px solid rgba(233, 179, 8, .3); }
 .fee-box.gov-box .fee-combined .fee-line span { font-size: 12.5px; color: #8a6a06; }
-.fee-box.gov-box .fee-combined .fee-line b { font-size: 15px; color: #111; }
+.fee-box.gov-box .fee-combined .fee-line b { font-size: 15px; color: #000; }
 
 /* --- pending compliances picker (sidebar, screen only) ---
    accordion: QPR/APR tabs, one collapsible card per form with its own
@@ -2136,7 +2164,7 @@ body.modal-open { overflow: hidden; }
 .fee-amount.fee-combined { font-size: 19px; white-space: normal; text-align: right; }
 .fee-combined .fee-line { display: flex; justify-content: flex-end; align-items: baseline; gap: 12px; }
 .fee-combined .fee-line span { font-size: 12px; font-weight: 700; color: #6b5310; }
-.fee-combined .fee-line b { font-size: 19px; font-weight: 800; color: #111; }
+.fee-combined .fee-line b { font-size: 19px; font-weight: 800; color: #000; }
 .fee-combined .fee-line-total { border-top: 1.5px solid rgba(233, 179, 8, .6); margin-top: 5px; padding-top: 5px; }
 
 /* government fees line inside the fee box: works in both the plain
@@ -2155,9 +2183,9 @@ body.modal-open { overflow: hidden; }
 .fee-amount .fee-line-gov span,
 .fee-combined .fee-line-gov span { font-size: 11px; font-weight: 700; color: #6b5310; }
 .fee-amount .fee-line-gov b,
-.fee-combined .fee-line-gov b { font-size: 17px; font-weight: 800; color: #111; }
+.fee-combined .fee-line-gov b { font-size: 17px; font-weight: 800; color: #000; }
 .fee-box.grand .fee-line-gov span { color: #8a6a06; }
-.fee-box.grand .fee-line-gov b { color: #111; }
+.fee-box.grand .fee-line-gov b { color: #000; }
 .fee-right { text-align: right; }
 .fee-yearly { font-size: 12px; font-weight: 700; color: var(--gold-deep, #a16207); margin-top: 4px; }
 
