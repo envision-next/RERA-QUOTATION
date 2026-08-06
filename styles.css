@@ -1748,7 +1748,16 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   transition-timing-function: ease-out;
 }
 .pp-form.open .pp-chev { transform: rotate(90deg); color: #e9b308; }
-.pp-fname { flex: none; }
+/* long names ("Form 2 + Form 3") shrink with an ellipsis instead of
+   pushing the badge into the price box */
+.pp-fname {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pp-fcount { flex: none; }
 .pp-fcount {
   font-size: 10px;
   font-weight: 700;

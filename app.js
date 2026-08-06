@@ -124,11 +124,28 @@ function hideLogin() {
   document.body.classList.remove("modal-open");
 }
 
+/* localhost-only test login (test / 123456): no server round-trip, so
+   the UI can be exercised offline; never active on the hosted site */
+function isLocalTestLogin(u, p) {
+  return (
+    (location.hostname === "localhost" || location.hostname === "127.0.0.1") &&
+    u === "test" &&
+    p === "123456"
+  );
+}
+
 async function doLogin() {
   const err = $("loginErr");
   err.textContent = "";
   const btn = $("btnLogin");
   btn.disabled = true;
+  if (isLocalTestLogin($("loginUser").value.trim(), $("loginPass").value)) {
+    setAuth({ name: "Test", username: "test", role: "admin", token: "local-test" });
+    hideLogin();
+    $("loginPass").value = "";
+    btn.disabled = false;
+    return;
+  }
   try {
     const data = await Store._post({
       action: "login",
@@ -156,6 +173,7 @@ function doLogout() {
    30s (and on tab focus) so this device drops to the sign-in screen
    by itself, no refresh needed. _post handles the actual logout. */
 async function checkSession() {
+  if (AUTH && AUTH.token === "local-test") return; // local test account has no server session
   if (!AUTH || !Store.remote()) return;
   try {
     await Store._post({ action: "me" });
@@ -291,6 +309,10 @@ const Store = {
   },
 
   async _post(payload) {
+    // the localhost test account has no server session — fail its data
+    // calls softly instead of bouncing to the sign-in screen
+    if (AUTH && AUTH.token === "local-test" && payload.action !== "login")
+      throw new Error("Test account is local-only - server features are disabled");
     let data = await this._send({ ...payload, token: AUTH && AUTH.token });
     // Apps Script's POST redirect occasionally glitches and the reply
     // falls through to the GET handler, which used to answer "auth"
@@ -656,6 +678,7 @@ const CATALOGUE = {
       "Sales & bank statements for pending periods.",
       "Form 3 CA certificates.",
       "Form 5 audit report.",
+      "Latest Site Images of the Project.",
     ],
     // the price builds up from the per-quarter filing fees
     amount: 0,
@@ -858,10 +881,18 @@ const SHORT_TITLES = {
    Ticking one adds an "Other Services" card and relaxes the matching
    package-exclusion line; the count sets Once / Twice / Thrice. */
 
-const OTHER = {
-  extension: { on: false, count: 1 },
-  correction: { on: false, count: 1 },
-};
+/* per-package add-on state: OTHER[packageKey] = {extension, correction,
+   closure} — ticking one under Package A applies to Package A only */
+let OTHER = {};
+function otherState(pkg) {
+  if (!OTHER[pkg])
+    OTHER[pkg] = {
+      extension: { on: false, count: 1 },
+      correction: { on: false, count: 1 },
+      closure: { on: false, count: 1 },
+    };
+  return OTHER[pkg];
+}
 const OTHER_DEFS = {
   extension: {
     name: "Extension u/s 7(3)",
@@ -870,6 +901,11 @@ const OTHER_DEFS = {
   correction: {
     name: "Correction u/s 14(2)",
     line: (w) => `Project Amendment under section 14(2) - Only "${w}" throughout the contract, after that professional fees applicable.`,
+  },
+  closure: {
+    name: "Closure",
+    line: () => "Project Closure",
+    noCount: true,
   },
 };
 
@@ -889,7 +925,6 @@ const TERMS_RETAINER = [
   "Client's Responsibility for Information: The Promoter/Client shall provide complete, accurate, current and authentic information, documents, certificates, approvals, financial records and other particulars required for providing the services. RERA Easy shall be entitled to rely upon the information and documents provided by the Client.",
   "Accuracy of Information: RERA Easy shall not be responsible for any consequence, discrepancy, rejection, objection, penalty, delay or adverse action arising from incorrect, incomplete, outdated, misleading or delayed information or documents provided by the Client or any third party engaged by the Client.",
   "Client's Statutory Responsibility: The appointment of RERA Easy shall not relieve the Promoter, its directors, partners, authorised representatives, professionals or consultants of their statutory, contractual or regulatory obligations under the RERA Act, Rules, Regulations, Orders, Circulars or directions issued by the competent authority.",
-  "No Guarantee of Approval or Outcome: RERA Easy shall provide professional consultancy, compliance assistance and procedural support based on the information and documents made available to it. RERA Easy does not guarantee approval, registration, amendment, certification, acceptance, withdrawal, closure, extension or any particular outcome from MahaRERA or any other authority, as such decisions remain solely within the jurisdiction and discretion of the concerned authority.",
   "Authority Timelines: Any timeline communicated by RERA Easy shall be subject to timely receipt of complete information and documents from the Client and the processing time, requirements and functioning of the concerned authority. RERA Easy shall not be responsible for delays caused by MahaRERA, Government authorities, banks, professionals, consultants, portal issues, technical failures or circumstances beyond its reasonable control.",
   "Review and Vetting of Certificates: Where the scope includes vetting or review of Form 1, Form 2, Form 3, Form 5 or any other certificate, such vetting shall be based on the documents and information provided by the respective Architect, Engineer, Chartered Accountant or other professional. The responsibility for the correctness, authenticity, professional opinion and certification of such documents shall remain with the respective issuing professional.",
   "Draft Templates: Wherever the scope provides for preparation of draft templates of Form 1, Form 2 or Form 3, such drafts shall contain only basic project particulars and shall not include financial, technical or other substantive values unless specifically stated in the selected package. Such drafts shall not constitute statutory certificates or professional certifications.",
@@ -1132,34 +1167,41 @@ function renderServicePicker() {
     });
   });
 
-  // Other Services add-ons: checkbox + how-many-times counter
+}
+
+/* Other Services add-ons: checkbox + how-many-times counter — rendered
+   inside every retainer package's dropdown, each package holding its
+   OWN selections */
+function appendOtherServicesRows(hostEl, pkg) {
+  const st = otherState(pkg);
   const oh = document.createElement("div");
   oh.className = "svc-group";
   oh.textContent = "Other Services";
-  host.appendChild(oh);
+  hostEl.appendChild(oh);
   Object.keys(OTHER_DEFS).forEach((okey) => {
     const row = document.createElement("div");
-    row.className = "svc-row";
+    row.className = "svc-row" + (st[okey].on ? " on" : "");
     row.innerHTML = `
       <label class="svc-toggle">
-        <input type="checkbox" class="other-check" data-okey="${okey}">
+        <input type="checkbox" class="other-check" data-okey="${okey}" data-pkg="${pkg}"${st[okey].on ? " checked" : ""}>
         <span class="svc-name">${escapeHtml(OTHER_DEFS[okey].name)}</span>
       </label>
-      <input type="number" class="svc-amt other-count" data-okey="${okey}" min="1" step="1" value="1" title="No. of times included in the contract" hidden>
+      ${OTHER_DEFS[okey].noCount
+        ? ""
+        : `<input type="number" class="svc-amt other-count" data-okey="${okey}" data-pkg="${pkg}" min="1" step="1" value="${st[okey].count}" title="No. of times included in the contract"${st[okey].on ? "" : " hidden"}>`}
     `;
-    host.appendChild(row);
+    hostEl.appendChild(row);
     const check = row.querySelector(".other-check");
     const cnt = row.querySelector(".other-count");
     check.addEventListener("change", () => {
-      OTHER[okey].on = check.checked;
-      row.classList.toggle("on", check.checked);
-      cnt.hidden = !check.checked;
+      setOtherState(pkg, okey, check.checked);
       refreshOtherServices();
     });
-    cnt.addEventListener("input", () => {
-      OTHER[okey].count = Math.max(1, parseInt(cnt.value, 10) || 1);
-      refreshOtherServices();
-    });
+    if (cnt)
+      cnt.addEventListener("input", () => {
+        otherState(pkg)[okey].count = Math.max(1, parseInt(cnt.value, 10) || 1);
+        refreshOtherServices();
+      });
   });
 }
 
@@ -1208,6 +1250,8 @@ function buildSubRows(key, hostEl) {
     });
   if (!hostEl.children.length)
     hostEl.innerHTML = `<div class="svc-sub-row"><span class="svc-sub-inc">Select the service first</span></div>`;
+  // retainer packages carry their OWN Other Services add-ons
+  if (key.indexOf("package_") === 0) appendOtherServicesRows(hostEl, key);
 }
 
 function panelRow(key) {
@@ -1286,6 +1330,11 @@ function deselectService(key) {
   amt.hidden = true;
   amt.disabled = false;
   offeringHead(key)?.remove();
+  // a package takes its Other Services card and add-on state with it
+  document
+    .querySelectorAll(`.svc-card[data-other="1"][data-parent="${key}"]`)
+    .forEach((c) => removeCardWithConts(c));
+  delete OTHER[key];
   delete REMOVED_SECS[key];
   document.querySelector(`.restore-bar[data-key="${key}"]`)?.remove();
   document.querySelector(`.pending-picker[data-key="${key}"]`)?.remove();
@@ -1313,12 +1362,13 @@ function cardGroup(c) {
   return c.dataset.key || c.dataset.parent || (c.classList.contains("custom-card") ? "__custom" : "");
 }
 
-/* last element of an offering's block (sections, continuations and
-   custom items), in document order */
+/* last element of an offering's block (sections, continuations, custom
+   items and the package's Other Services card), in document order —
+   the fee strips and add buttons anchor after whatever this returns */
 function groupLast(key) {
   const els = [
     ...document.querySelectorAll(
-      `.svc-card:not(.svc-cont)[data-key="${key}"], .svc-card.custom-card[data-parent="${key}"]`
+      `.svc-card:not(.svc-cont)[data-key="${key}"], .svc-card.custom-card[data-parent="${key}"], .svc-card[data-other="1"][data-parent="${key}"]`
     ),
   ];
   if (!els.length) return null;
@@ -1484,8 +1534,9 @@ function scopeListHtml(subText) {
         return `<li class="pp-sub">${h}</li>`;
       }
       if (/^(QPR|APR) - Form /.test(l)) {
+        // the form name runs up to " of Financial Year" (covers "Form 2 + Form 3")
         const h = escapeHtml(l)
-          .replace(/^((QPR|APR) - Form \w+)/, "<b>$1</b>")
+          .replace(/^((QPR|APR) - Form .+?)(?= of Financial)/, "<b>$1</b>")
           .replace(/\s*[—-]\s*(₹[\d,]+\/-)\s*$/, " - <b>$1</b>");
         return `<li>${h}</li>`;
       }
@@ -1534,6 +1585,7 @@ const PENDING_TREE = [
     { f: "Form 1", quarters: true },
     { f: "Form 2", quarters: true },
     { f: "Form 3", quarters: true },
+    { f: "Form 2 + Form 3", quarters: true },
   ]},
   { g: "APR", forms: [
     { f: "Form 5", quarters: false },
@@ -1588,7 +1640,7 @@ function buildPendingPicker(key) {
       <button type="button" class="pp-tab on" data-g="QPR">QPR</button>
       <button type="button" class="pp-tab" data-g="APR">APR</button>
     </div>
-    ${pane("QPR", ["Form 1", "Form 2", "Form 3"], true)}
+    ${pane("QPR", ["Form 1", "Form 2", "Form 3", "Form 2 + Form 3"], true)}
     ${pane("APR", ["Form 5"], false)}`;
 
   const updateCount = (formEl) => {
@@ -1658,37 +1710,41 @@ function rebuildPendingLines(card, picker) {
       const f = formEl.dataset.f;
       // the form's fee is PER QUARTER (per year for APR): every selected
       // year prints a heading line, each quarter follows as an indented
-      // sub-line with its own price, and every price joins the total
+      // sub-line with its own price, and every price joins the total.
+      // The combined option prints as if each form was picked alone.
       const fee = parseAmt(formEl.querySelector(".pp-fee")?.value);
-      formEl.querySelectorAll(".pp-yr").forEach((row) => {
-        if (!row.querySelector(".pp-ychip.on")) return;
-        const y = row.dataset.y;
-        const start = parseInt(y, 10);
-        if (g === "APR") {
-          let line = `<b>${g} - ${f}</b> of Financial Year ${y}`;
-          if (fee > 0) {
-            line += ` - <b>₹${fmt0(fee)}/-</b>`;
-            feeTotal += fee;
+      const names = f === "Form 2 + Form 3" ? ["Form 2", "Form 3"] : [f];
+      names.forEach((name) => {
+        formEl.querySelectorAll(".pp-yr").forEach((row) => {
+          if (!row.querySelector(".pp-ychip.on")) return;
+          const y = row.dataset.y;
+          const start = parseInt(y, 10);
+          if (g === "APR") {
+            let line = `<b>${g} - ${name}</b> of Financial Year ${y}`;
+            if (fee > 0) {
+              line += ` - <b>₹${fmt0(fee)}/-</b>`;
+              feeTotal += fee;
+            }
+            lines.push({ html: line, sub: false });
+            return;
           }
-          lines.push({ html: line, sub: false });
-          return;
-        }
-        const qLabel = {
-          Q1: `June ${start} (Q1)`,
-          Q2: `September ${start} (Q2)`,
-          Q3: `December ${start} (Q3)`,
-          Q4: `March ${start + 1} (Q4)`,
-        };
-        let qs = [...row.querySelectorAll(".pp-qchip.on")].map((c) => c.dataset.q);
-        if (!qs.length) qs = ["Q1", "Q2", "Q3", "Q4"]; // whole year = all four
-        lines.push({ html: `<b>${g} - ${f}</b> of Financial Year ${y} for -`, sub: false });
-        qs.forEach((q) => {
-          let ql = qLabel[q];
-          if (fee > 0) {
-            ql += ` - <b>₹${fmt0(fee)}/-</b>`;
-            feeTotal += fee;
-          }
-          lines.push({ html: ql, sub: true });
+          const qLabel = {
+            Q1: `June ${start} (Q1)`,
+            Q2: `September ${start} (Q2)`,
+            Q3: `December ${start} (Q3)`,
+            Q4: `March ${start + 1} (Q4)`,
+          };
+          let qs = [...row.querySelectorAll(".pp-qchip.on")].map((c) => c.dataset.q);
+          if (!qs.length) qs = ["Q1", "Q2", "Q3", "Q4"]; // whole year = all four
+          lines.push({ html: `<b>${g} - ${name}</b> of Financial Year ${y} for -`, sub: false });
+          qs.forEach((q) => {
+            let ql = qLabel[q];
+            if (fee > 0) {
+              ql += ` - <b>₹${fmt0(fee)}/-</b>`;
+              feeTotal += fee;
+            }
+            lines.push({ html: ql, sub: true });
+          });
         });
       });
     });
@@ -1737,6 +1793,7 @@ function rebuildPendingLines(card, picker) {
       panelAmt.value = fmt0(base + feeTotal);
   }
   card.dataset.pendingFees = String(feeTotal);
+  rebuildDocs(); // the documents annexure follows the selected forms
   recalc();
 }
 
@@ -2236,6 +2293,10 @@ function rebuildOfferingFees() {
     // trailing widgets sit after the restore bar, if one is showing
     if (anchor.nextElementSibling && anchor.nextElementSibling.classList.contains("restore-bar"))
       anchor = anchor.nextElementSibling;
+    // the Other Services card rides directly under the package block —
+    // the add buttons and fee strips go below it, not above
+    const nx = anchor.nextElementSibling;
+    if (nx && nx.dataset && nx.dataset.other === "1") anchor = nx;
 
     if (showFees) {
       const div = document.createElement("div");
@@ -2304,32 +2365,32 @@ function serviceTotal(key) {
 function currentExclusionLines(key) {
   let lines = [...(CATALOGUE[key].exclusions || [])];
   if (key.startsWith("package_")) {
-    if (OTHER.extension.on)
+    const st = OTHER[key];
+    if (st && st.extension.on)
       lines = lines.map((l) =>
         l.startsWith("Project Time Extension")
           ? "Project Time Extension under Section 6, Order No. 40, or any other applicable provisions and directions issued by MahaRERA"
           : l
       );
-    if (OTHER.correction.on)
+    if (st && st.correction.on)
       lines = lines.filter((l) => !l.startsWith("Project Amendment under section 14(2)"));
   }
   return lines;
 }
 
-function setOtherState(okey, on, count) {
-  if (OTHER[okey].on !== on || (count && OTHER[okey].count !== count)) pushUndo();
-  OTHER[okey].on = on;
-  if (count) OTHER[okey].count = count;
-  const check = document.querySelector(`.other-check[data-okey="${okey}"]`);
-  const cnt = document.querySelector(`.other-count[data-okey="${okey}"]`);
-  if (check) {
+function setOtherState(pkg, okey, on, count) {
+  const st = otherState(pkg);
+  if (st[okey].on !== on || (count && st[okey].count !== count)) pushUndo();
+  st[okey].on = on;
+  if (count) st[okey].count = count;
+  document.querySelectorAll(`.other-check[data-okey="${okey}"][data-pkg="${pkg}"]`).forEach((check) => {
     check.checked = on;
     check.closest(".svc-row").classList.toggle("on", on);
-  }
-  if (cnt) {
+  });
+  document.querySelectorAll(`.other-count[data-okey="${okey}"][data-pkg="${pkg}"]`).forEach((cnt) => {
     cnt.hidden = !on;
-    cnt.value = OTHER[okey].count;
-  }
+    cnt.value = st[okey].count;
+  });
 }
 
 function removeCardWithConts(card) {
@@ -2343,24 +2404,35 @@ function refreshOtherServices() {
   // 1 · the printed Exclusions section follows the add-on state
   rebuildExclusions();
 
-  // 2 · maintain the Other Services card
-  const lines = [];
-  if (OTHER.extension.on) lines.push(OTHER_DEFS.extension.line(countWord(OTHER.extension.count)));
-  if (OTHER.correction.on) lines.push(OTHER_DEFS.correction.line(countWord(OTHER.correction.count)));
-
-  let card = document.querySelector('.svc-card[data-other="1"]');
-  if (!lines.length) {
-    if (card) removeCardWithConts(card);
-    recalc();
-    return;
-  }
-  const html = scopeListHtml(lines.join("\n"));
-  if (!card) {
-    card = document.createElement("div");
-    card.className = "svc-card";
-    card.dataset.other = "1";
-    card.dataset.uid = String(++CARD_UID);
-    card.innerHTML = `
+  // 2 · one Other Services card per package, from ITS OWN add-on state,
+  // sitting at the end of that package's block
+  const pkgs = selectedKeys().filter(isYearly);
+  const pkgLines = (pkg) => {
+    const st = OTHER[pkg];
+    const lines = [];
+    if (st) {
+      if (st.extension.on) lines.push(OTHER_DEFS.extension.line(countWord(st.extension.count)));
+      if (st.correction.on) lines.push(OTHER_DEFS.correction.line(countWord(st.correction.count)));
+      if (st.closure.on) lines.push(OTHER_DEFS.closure.line());
+    }
+    return lines;
+  };
+  document.querySelectorAll('.svc-card[data-other="1"]').forEach((card) => {
+    const pkg = card.dataset.parent;
+    if (!pkgs.includes(pkg) || !pkgLines(pkg).length) removeCardWithConts(card);
+  });
+  pkgs.forEach((pkg) => {
+    const lines = pkgLines(pkg);
+    if (!lines.length) return;
+    const html = scopeListHtml(lines.join("\n"));
+    let card = document.querySelector(`.svc-card[data-other="1"][data-parent="${pkg}"]`);
+    if (!card) {
+      card = document.createElement("div");
+      card.className = "svc-card";
+      card.dataset.other = "1";
+      card.dataset.parent = pkg;
+      card.dataset.uid = String(++CARD_UID);
+      card.innerHTML = `
       <div class="card-head">
         <div class="card-title">Other Services</div>
         <div class="card-pill card-pill-outline">Included in our scope</div>
@@ -2368,25 +2440,20 @@ function refreshOtherServices() {
       </div>
       <ol class="card-list" contenteditable="true" spellcheck="false" title="Other services (click to edit)">${html}</ol>
     `;
-    card.querySelector(".row-del").addEventListener("click", () => {
-      setOtherState("extension", false);
-      setOtherState("correction", false);
-      refreshOtherServices();
-    });
-    // sits after the last service card, before any custom items
-    const firstCustom = document.querySelector(".svc-card.custom-card");
-    if (firstCustom) firstCustom.parentNode.insertBefore(card, firstCustom);
-    else {
-      const all = [...document.querySelectorAll(".svc-card")];
-      if (all.length) all[all.length - 1].after(card);
+      card.querySelector(".row-del").addEventListener("click", () => {
+        Object.keys(OTHER_DEFS).forEach((k) => setOtherState(pkg, k, false));
+        refreshOtherServices();
+      });
+      const last = groupLast(pkg);
+      if (last) last.after(card);
       else $("svcCards").appendChild(card);
+    } else if (!card.contains(document.activeElement)) {
+      document
+        .querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"]`)
+        .forEach((c) => c.remove());
+      card.querySelector(".card-list").innerHTML = html;
     }
-  } else if (!card.contains(document.activeElement)) {
-    document
-      .querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"]`)
-      .forEach((c) => c.remove());
-    card.querySelector(".card-list").innerHTML = html;
-  }
+  });
   recalc();
 }
 
@@ -2728,11 +2795,64 @@ function selectedKeys() {
   return ORDER.filter((k) => panelCheck(k)?.checked);
 }
 
+/* Pending Compliances documents follow the SELECTED FORMS. The forms
+   are read from the card's printed lines, so the list survives
+   save/reload without needing the picker's state. */
+const PENDING_FORM_DOCS = {
+  "Form 1": ["Latest Site Images of the Project."],
+  "Form 2": [
+    "Form 3 CA Certificate for the Relevant Quarters.",
+    "Latest approved Plans and CC for the Project.",
+  ],
+  "Form 3": [
+    "Tally Data/ Bank Statements for the project from the beginning till Date.",
+    "RERA Carpet Area Statement.",
+    "Index II or Date of Registration of Sold Units.",
+  ],
+  "Form 5": [
+    "Tally Data/ Bank Statements for the project from the beginning till Date.",
+    "RERA Carpet Area Statement.",
+    "Index II or Date of Registration of Sold Units.",
+  ],
+};
+// both Form 2 AND Form 3 (picked separately or via the combined option)
+const PENDING_FORM23_DOCS = [
+  "Tally Data/ Bank Statements for the project from the beginning till Date.",
+  "RERA Carpet Area Statement.",
+  "Index II or Date of Registration of Sold Units.",
+  "Latest approved Plans and CC for the Project.",
+];
+
+function pendingDocs() {
+  const card = serviceCard("pending_compliances");
+  const forms = new Set();
+  if (card) {
+    [
+      ...card.querySelectorAll(".card-list li"),
+      ...document.querySelectorAll(`.svc-cont[data-cont-for="${card.dataset.uid}"] .card-list li`),
+    ].forEach((li) => {
+      const m = /^(QPR|APR) - (Form \d\w*)/.exec(li.textContent.trim());
+      if (m) forms.add(m[2]);
+    });
+  }
+  if (!forms.size) return CATALOGUE.pending_compliances.docs;
+  const docs = [];
+  const add = (arr) => arr.forEach((d) => { if (!docs.includes(d)) docs.push(d); });
+  if (forms.has("Form 1")) add(PENDING_FORM_DOCS["Form 1"]);
+  if (forms.has("Form 2") && forms.has("Form 3")) add(PENDING_FORM23_DOCS);
+  else {
+    if (forms.has("Form 2")) add(PENDING_FORM_DOCS["Form 2"]);
+    if (forms.has("Form 3")) add(PENDING_FORM_DOCS["Form 3"]);
+  }
+  if (forms.has("Form 5")) add(PENDING_FORM_DOCS["Form 5"]);
+  return docs;
+}
+
 function rebuildDocs() {
   // union of the selected services' documents, in catalogue order
   const docs = [];
   selectedKeys().forEach((k) =>
-    CATALOGUE[k].docs.forEach((d) => {
+    (k === "pending_compliances" ? pendingDocs() : CATALOGUE[k].docs).forEach((d) => {
       if (!docs.includes(d)) docs.push(d);
     })
   );
@@ -2895,7 +3015,7 @@ function buildRecord() {
     },
     services,
     customItems,
-    other: { extension: { ...OTHER.extension }, correction: { ...OTHER.correction } },
+    other: JSON.parse(JSON.stringify(OTHER)),
     extraDocs: [...extraDocs],
     removedDocs: [...removedDocs],
     savedAt: new Date().toISOString(),
@@ -3009,8 +3129,25 @@ function loadQuotationInner(q) {
   (q.customItems || []).forEach((it) => addCustomCard(it));
 
   const o = q.other || {};
-  setOtherState("extension", !!(o.extension && o.extension.on), (o.extension && o.extension.count) || 1);
-  setOtherState("correction", !!(o.correction && o.correction.on), (o.correction && o.correction.count) || 1);
+  OTHER = {};
+  if (o.extension || o.correction) {
+    // legacy saves held ONE global add-on set — attach it to the first
+    // selected package so nothing silently disappears
+    const pkg = selectedKeys().filter(isYearly)[0];
+    if (pkg) {
+      const st = otherState(pkg);
+      ["extension", "correction"].forEach((k) => {
+        if (o[k]) st[k] = { on: !!o[k].on, count: o[k].count || 1 };
+      });
+    }
+  } else {
+    Object.keys(o).forEach((pkg) => {
+      OTHER[pkg] = o[pkg];
+      Object.keys(OTHER_DEFS).forEach((k) => {
+        if (!OTHER[pkg][k]) OTHER[pkg][k] = { on: false, count: 1 };
+      });
+    });
+  }
   refreshOtherServices();
 
   rebuildDocs();
@@ -3219,8 +3356,7 @@ function clearSheet() {
   });
   document.querySelectorAll(".svc-card, .offering-head, .restore-bar, .offering-fee").forEach((c) => c.remove());
   REMOVED_SECS = {};
-  setOtherState("extension", false, 1);
-  setOtherState("correction", false, 1);
+  OTHER = {};
   delete $("propTitle").dataset.custom;
   extraDocs = [];
   removedDocs = new Set();
