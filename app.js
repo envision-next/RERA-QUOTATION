@@ -657,7 +657,8 @@ const CATALOGUE = {
       "Form 3 CA certificates.",
       "Form 5 audit report.",
     ],
-    amount: 40000,
+    // the price builds up from the per-quarter filing fees
+    amount: 0,
   },
   maharera_profile_updation: {
     label: "One Time MahaRERA Profile Updation",
@@ -1003,6 +1004,9 @@ function loadRates() {
       ORDER.forEach((k) => {
         if (s.amounts[k] === undefined) s.amounts[k] = CATALOGUE[k].amount;
       });
+      // pending compliances now starts at 0 and builds from filing fees —
+      // migrate the old stock default; a hand-set custom rate survives
+      if (s.amounts.pending_compliances === 40000) s.amounts.pending_compliances = 0;
       return s;
     }
   } catch {}
@@ -1473,13 +1477,16 @@ function scopeListHtml(subText) {
   const lines = String(subText).split("\n").map((l) => l.trim()).filter(Boolean);
   return lines
     .map((l) => {
-      // pending filing lines keep their bold form / quarters / fee on reload
+      // pending filing lines keep their bold form / fee on reload; the
+      // indented quarter sub-lines keep their bold per-quarter price
+      if (/^(June|September|December|March) \d{4} \(Q\d\)/.test(l)) {
+        const h = escapeHtml(l).replace(/\s*[—-]\s*(₹[\d,]+\/-)\s*$/, " - <b>$1</b>");
+        return `<li class="pp-sub">${h}</li>`;
+      }
       if (/^(QPR|APR) - Form /.test(l)) {
         const h = escapeHtml(l)
           .replace(/^((QPR|APR) - Form \w+)/, "<b>$1</b>")
-          .replace(/ of (all Quarters)/g, " of <b>$1</b>")
-          .replace(/ [—-] (₹[\d,]+\/-)\s*$/, " - <b>$1</b>")
-          .replace(/ for ([^;]+?)(?=;|<b>₹| - <b>|$)/g, " for <b>$1</b>");
+          .replace(/\s*[—-]\s*(₹[\d,]+\/-)\s*$/, " - <b>$1</b>");
         return `<li>${h}</li>`;
       }
       const m = /^([^:]{2,60}):\s*(.+)$/.exec(l);
@@ -1564,7 +1571,7 @@ function buildPendingPicker(key) {
       <div class="pp-form" data-f="${f}">
         <div class="pp-fhead">
           <button type="button" class="pp-ftoggle">${CHEV}<span class="pp-fname">${f}</span><span class="pp-fcount" hidden></span></button>
-          <label class="pp-fprice" title="Fee for ${f} — prints in the card and adds to the offering price">&#8377;<input type="text" class="pp-fee" inputmode="decimal" placeholder="0" size="6"></label>
+          <label class="pp-fprice" title="Fee per quarter for ${f} - prints in the card and adds to the offering price">&#8377;<input type="text" class="pp-fee" inputmode="decimal" placeholder="0" size="6"></label>
         </div>
         <div class="pp-fbody" hidden>${yearRows(withQ)}</div>
       </div>`
@@ -1649,15 +1656,21 @@ function rebuildPendingLines(card, picker) {
     const g = pn.dataset.g;
     pn.querySelectorAll(".pp-form").forEach((formEl) => {
       const f = formEl.dataset.f;
+      // the form's fee is PER QUARTER (per year for APR): every selected
+      // year prints a heading line, each quarter follows as an indented
+      // sub-line with its own price, and every price joins the total
       const fee = parseAmt(formEl.querySelector(".pp-fee")?.value);
-      // ONE line per form: every selected year becomes a segment on it
-      const segs = [];
       formEl.querySelectorAll(".pp-yr").forEach((row) => {
         if (!row.querySelector(".pp-ychip.on")) return;
         const y = row.dataset.y;
         const start = parseInt(y, 10);
         if (g === "APR") {
-          segs.push(`Financial Year ${y}`);
+          let line = `<b>${g} - ${f}</b> of Financial Year ${y}`;
+          if (fee > 0) {
+            line += ` - <b>₹${fmt0(fee)}/-</b>`;
+            feeTotal += fee;
+          }
+          lines.push({ html: line, sub: false });
           return;
         }
         const qLabel = {
@@ -1666,39 +1679,36 @@ function rebuildPendingLines(card, picker) {
           Q3: `December ${start} (Q3)`,
           Q4: `March ${start + 1} (Q4)`,
         };
-        const qs = [...row.querySelectorAll(".pp-qchip.on")].map((c) => c.dataset.q);
-        segs.push(
-          `Financial Year ${y}` +
-            (qs.length === 0 || qs.length === 4
-              ? ` of <b>all Quarters</b>`
-              : ` for <b>${qs.map((q) => qLabel[q]).join(", ")}</b>`)
-        );
+        let qs = [...row.querySelectorAll(".pp-qchip.on")].map((c) => c.dataset.q);
+        if (!qs.length) qs = ["Q1", "Q2", "Q3", "Q4"]; // whole year = all four
+        lines.push({ html: `<b>${g} - ${f}</b> of Financial Year ${y} for -`, sub: false });
+        qs.forEach((q) => {
+          let ql = qLabel[q];
+          if (fee > 0) {
+            ql += ` - <b>₹${fmt0(fee)}/-</b>`;
+            feeTotal += fee;
+          }
+          lines.push({ html: ql, sub: true });
+        });
       });
-      if (!segs.length) return;
-      let line = `<b>${g} - ${f}</b> of ${segs.join("; ")}`;
-      if (fee > 0) {
-        line += ` - <b>₹${fmt0(fee)}/-</b>`;
-        feeTotal += fee;
-      }
-      lines.push(line);
     });
   });
   const ol = card.querySelector(".card-list");
+  // a filing line is a form/year heading OR a quarter sub-line
+  const pendRe = /^((Pending )?(QPR|APR) - |(June|September|December|March) \d{4} \(Q\d\))/;
   // first rebuild after a reload: recover the fees already baked into
   // the printed lines so they are not added to the pill twice
   if (card.dataset.pendingFees === undefined) {
     let prev = 0;
     [...ol.querySelectorAll("li")].forEach((li) => {
       const t = li.textContent.trim();
-      if (!/^(Pending )?(QPR|APR) - /.test(t)) return;
-      const m = t.match(/[—-]\s*₹([\d,]+)\/-\s*$/);
-      if (m) prev += parseAmt(m[1]);
+      if (!pendRe.test(t)) return;
+      (t.match(/₹([\d,]+)\/-/g) || []).forEach((m) => (prev += parseAmt(m)));
     });
     card.dataset.pendingFees = String(prev);
   }
   [...ol.querySelectorAll("li")].forEach((li) => {
-    const t = li.textContent.trim();
-    if (/^(Pending )?(QPR|APR) - /.test(t)) li.remove();
+    if (pendRe.test(li.textContent.trim())) li.remove();
   });
   // real selections replace the generic "QPR/APR Filings" intro lines;
   // clearing every selection brings the intro back
@@ -1712,7 +1722,8 @@ function rebuildPendingLines(card, picker) {
   }
   lines.forEach((l) => {
     const li = document.createElement("li");
-    li.innerHTML = l;
+    li.innerHTML = l.html;
+    if (l.sub) li.className = "pp-sub";
     ol.appendChild(li);
   });
   if (!ol.querySelector("li")) ol.innerHTML = "<li><br></li>";
@@ -3393,7 +3404,9 @@ function trySplitCard(card, remaining) {
   nol.className = ol.className;      // keeps exclusions styling on splits
   if (ol.isContentEditable) nol.setAttribute("contenteditable", "true");
   nol.setAttribute("spellcheck", "false");
-  nol.style.counterReset = "scope " + (base + fit);
+  // unnumbered sub-lines (quarter rows) don't advance the counter
+  nol.style.counterReset =
+    "scope " + (base + lis.slice(0, fit).filter((li) => !li.classList.contains("pp-sub")).length);
   lis.slice(fit).forEach((li) => nol.appendChild(li));
   cont.appendChild(nol);
   card.after(cont);          // in the DOM at once, so it measures
@@ -3408,7 +3421,10 @@ function trySplitTerms(ol, remaining) {
   const top = ol.getBoundingClientRect().top;
   let fit = 0;
   for (const li of lis) {
-    if (li.getBoundingClientRect().bottom - top + 12 > remaining) break;
+    // the page constants run ~60px conservative on letterhead pages —
+    // spend that slack here, or a clause that fits gets pushed over
+    // and prints as a blank stretch above the footer
+    if (li.getBoundingClientRect().bottom - top > remaining + 60) break;
     fit++;
   }
   if (fit < 1) return null;

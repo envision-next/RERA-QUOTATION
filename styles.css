@@ -1434,6 +1434,9 @@ body.locked #pagesContainer .no-print { opacity: 0.35; }
   justify-content: center;
 }
 .card-list li b { color: #111; font-weight: 700; }
+/* quarter sub-lines under a pending-filing heading: indented, unnumbered */
+.card-list li.pp-sub { counter-increment: none; padding-left: 54px; }
+.card-list li.pp-sub::before { content: none; }
 .card-list:focus { outline: 2px solid rgba(233, 179, 8, 0.4); border-radius: 6px; }
 .card-list:hover { outline: 1px dashed #f0dfa0; border-radius: 6px; }
 
