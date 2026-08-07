@@ -397,36 +397,30 @@ const Store = {
    Sections repeat across packages, so they live here once. */
 
 const REG_SERVICE_ITEMS = [
-  "Consultation and Guidance on Registration Procedures",
-  "Assistance with Online Registration Process",
-  "Preparation of Necessary Undertakings and Affidavits for RERA Registration",
-  "Preparation and Submission of Format D as per Circular 32",
-  "Scrutiny Assistance till RERA Certificate is generated",
-  "Continued support until the RERA Certificate is issued",
-  "Procurement of CERSAI Certificate",
-  "Cost accounting in accordance with MahaRERA regulations",
+  "Consultation and Guidance on MahaRERA Registration Requirements and Procedures",
+  "End-to-End Assistance for Online MahaRERA Registration and Application Filing",
+  "Preparation of Required Undertakings, Declarations and Affidavits for Registration",
+  "Application Scrutiny Support and Resolution of Queries until Certificate Generation",
+  "Continued Coordination and Support until Issuance of the MahaRERA Registration Certificate",
+  "Assistance for Procurement of CERSAI Certificate",
+  "Cost Accounting and Compliance in accordance with Applicable MahaRERA Regulations",
 ];
 const REG_DRAFTING_ITEMS = [
-  "Drafting/Review of Agreement for Sale in Compliance with MahaRERA Regulations",
-  "Drafting/Review of Allotment Letters in Compliance with MahaRERA Regulations",
-  "Preparation/Review and Submission of Deviation Reports for Agreement for Sale",
-  "Preparation/Review and Submission of Deviation Reports for Allotment Letters",
+  "Preparation of Allotment Letters in accordance with MahaRERA Requirements",
+  "Preparation and Submission of Deviation Report for Agreement for Sale",
+  "Preparation and Submission of Deviation Report for Allotment Letters",
 ];
 const REG_VETTING_ITEMS = [
-  "Vetting of Agreement for Sale in Compliance with MahaRERA Regulations",
-  "Vetting of Allotment Letters in Compliance with MahaRERA Regulations",
-  "Vetting and Submission of Deviation Reports for Agreement for Sale",
-  "Vetting and Submission of Deviation Reports for Allotment Letters",
+  "Vetting of Agreement for Sale for Compliance with Applicable MahaRERA Regulations",
+  "Vetting of Allotment Letters in accordance with MahaRERA Requirements",
+  "Vetting and Submission of Deviation Report for Agreement for Sale",
+  "Vetting and Submission of Deviation Report for Allotment Letters",
 ];
-const REG_VETTING_ITEMS_LUMPSUM = [
-  "Vetting of Agreement for Sale (including Registration & Execution)",
-  "Vetting of Allotment Letters in Compliance with MahaRERA Regulations",
-  "Vetting and Submission of Deviation Reports for Agreement for Sale",
-  "Vetting and Submission of Deviation Reports for Allotment Letters",
-];
+// registration content is the same for the lumpsum variant
+const REG_VETTING_ITEMS_LUMPSUM = REG_VETTING_ITEMS;
 const REG_CERT_ITEMS = [
-  "Preparation & Certification of Form 3 (Chartered Accountant's Certificate)",
-  "Preparation & Certification of Form 2 (Engineer's Certificate)",
+  "Preparation and Certification of Form 3 (Chartered Accountant's Certificate)",
+  "Preparation and Certification of Form 2 (Engineer's Certificate)",
 ];
 const REG_EXCLUSIONS = [
   "Liasoning with RERA authorities for smooth communication between your organization and regulatory bodies",
@@ -456,54 +450,101 @@ const PKG_EXCL_B = pkgExcl(
 );
 const PKG_EXCL_CD = pkgExcl("Form 2A (Quality Assurance Certificate)");
 
-const PKG_ADVISORY_6 = [
-  "Liasoning with RERA authorities for smooth communication between your organization and regulatory bodies",
-  "Comprehensive consultation regarding the RERA Act & Rules",
-  "Expert Guidance and updates on MahaRERA Orders & Regulations",
-  "Detailed insight into functioning of 100%, 70% and 30% Bank Accounts & Procedures for withdrawals",
-  "Advisory Services on contractual Agreements with buyers",
-  "Preventive/Proactive advice with respect to compliances",
+/* Consultation & Advisory — base 5 shared across A-D, plus per-tier
+   trailing lines */
+const PKG_ADVISORY_BASE = [
+  "Liaisoning with RERA Authorities to facilitate smooth communication between your organization and regulatory bodies",
+  "Comprehensive Consultation and Advisory on the RERA Act, Rules and Applicable Regulations",
+  "Expert Guidance and Regular Updates on Applicable MahaRERA Orders, Circulars and Regulations",
+  "Detailed Guidance on 100%, 70% and 30% Bank Accounts and Withdrawal Procedures",
+  "Preventive and Proactive Advisory for Timely RERA Compliance and Regulatory Requirements",
 ];
-const PKG_QPR = [
-  "Vetting of Form 1 (Architect Certificate) as per Annexure A (Regulation 3)",
-  "Vetting of Form 2 (Engineer Certificate) as per Annexure B (Regulation 3)",
-  "Vetting of Form 3 (CA Certificate) as per Annexure D (Regulation 3)",
-  "Drafting of Disclosure of Sold/Unsold Inventory as per Circular 29 For Non Migrated Projects",
-  "Updation of Work Progress and Development work",
-  "Updation of Cost details (Incurred)",
-  "Updation of Inventory Details, Building Details, Project Details, & Status",
-  "Filing of QPR Report to MahaRERA on quarterly basis",
+const PKG_ADV_WITHDRAWAL =
+  "Advisory on Future Withdrawal Requirements and Procedures for Effective Management of Project Bank Accounts";
+const PKG_ADV_UPDATES =
+  "Providing timely updates and reminders of MahaRERA Compliances for maintaining a strong compliance record";
+const PKG_ADVISORY_A = [...PKG_ADVISORY_BASE, PKG_ADV_UPDATES];
+const PKG_ADVISORY_BCD = [...PKG_ADVISORY_BASE, PKG_ADV_WITHDRAWAL, PKG_ADV_UPDATES];
+
+/* Quarterly Progress Reports — base 7, then the filing line (wording
+   differs A vs B-D) and optional draft-forms line */
+const PKG_QPR_BASE = [
+  "Review of Form 1 (Architect's Certificate) as per Annexure A under Regulation 3",
+  "Review of Form 2 (Engineer's Certificate) as per Annexure B under Regulation 3",
+  "Review of Form 3 (Chartered Accountant's Certificate) as per Annexure D under Regulation 3",
+  "Drafting of Disclosure of Sold/Unsold Inventory as per Circular 29 for Non-Migrated Projects",
+  "Updation of Work Progress and Development Activities",
+  "Updation of Incurred Project Cost Details",
+  "Updation of Inventory, Building, Project Details and Current Status",
 ];
-// Package A only: B-D include certified forms elsewhere, A gets drafts
-const PKG_QPR_DRAFTS =
-  "Preparation of Draft of Form 1, Form 2 & Form 3 with basic Project Details excluding Professional findings such as Physical / Financial / Technical Values & Certification";
-const PKG_PROFILE = [
-  "Uploading of amended/revised permissions from the local planning authority",
-  "Updation of parking details",
+const PKG_QPR_A = [
+  ...PKG_QPR_BASE,
+  "Filing of Quarterly Progress Report (QPR) with MahaRERA",
+  "Preparation of Draft Form 1, Form 2, Form 3, Form 5 and Form 2A incorporating basic Project Details, excluding Professional Findings, Physical, Financial and Technical Values and Certification",
+];
+const PKG_QPR_B = [
+  ...PKG_QPR_BASE,
+  "Preparation and Filing of Quarterly Progress Report (QPR) with MahaRERA",
+  "Preparation of Draft Form 1, Form 5 and Form 2A incorporating basic Project Details, excluding Professional Findings, Physical, Financial and Technical Values and Certification",
+];
+const PKG_QPR_CD = [
+  ...PKG_QPR_BASE,
+  "Preparation and Filing of Quarterly Progress Report (QPR) with MahaRERA",
+];
+
+/* Professional Certifications — base 8 (B), plus construction-cost
+   estimate (C) and Form 1 certification (D) at the top */
+const PKG_CERTS_BASE = [
+  "Preparation and Certification of Form 2 (Engineer's Certificate)",
+  "Cost Accounting in accordance with RERA Requirements for Evaluation of Project Expenditure based on Books of Accounts",
+  "Preparation of Detailed Statement of Project Receipts in accordance with RERA Requirements",
+  "Assessment and Valuation of Unsold Inventory for RERA Compliance and Reporting",
+  "Preparation and Certification of Form 3 (Chartered Accountant's Certificate)",
+  "Recommendations for Modifications or Amendments to Form 3 (Chartered Accountant's Certificate)",
+  "Consultation and Assistance in Compilation of Form 3 (Chartered Accountant's Certificate)",
+  "Advisory on Financial Reporting and Management Practices in accordance with Applicable RERA Requirements",
+];
+const PKG_CERT_COST_EST = "Preparation and Updation of Construction Cost Estimates for the Project";
+const PKG_CERT_FORM1 = "Preparation and Certification of Form 1 (Architect's Certificate)";
+const PKG_CERTS_B = PKG_CERTS_BASE;
+const PKG_CERTS_C = [PKG_CERT_COST_EST, ...PKG_CERTS_BASE];
+const PKG_CERTS_D = [PKG_CERT_FORM1, PKG_CERT_COST_EST, ...PKG_CERTS_BASE];
+
+/* RERA Profile Updation & Compliance — base 7, then Form 5 / 2A
+   uploading (wording differs by tier) and the modification line */
+const PKG_PROFILE_BASE = [
+  "Uploading of Amended/Revised Permissions issued by the Local Planning Authority",
+  "Updation and Maintenance of Parking Details",
   "Updation and Amendment of Financial Encumbrance Details",
-  "Obtaining CERSAI Certificate in case of financial encumbrance",
-  "Updation of Litigation details",
-  "Updation of Promoter and Stakeholder details",
-  "Updation of Communication and contact details",
-  "Updation of Professional details including Channel Partner, Contractors and others",
-  "Drafting assistance of Form 2A (Quality Assurance Certificate)",
-  "Modification & Amendment of Project Details (Wherever It is possible without application)",
+  "Assistance in Obtaining CERSAI Certificate in case of Financial Encumbrance",
+  "Updation and Maintenance of Litigation Details",
+  "Updation of Communication and Contact Details",
+  "Updation of Professional Details, including Channel Partners, Contractors and Other Consultants",
 ];
-const PKG_CERTS = [
-  "Preparing/Updating estimates related to cost of construction for the project",
-  "Preparation and Certification of Form 2 (Engineers Certificate)",
-  "Cost accounting as per RERA for evaluating the expenses incurred in the project as per Books of Accounts",
-  "Preparing the detailed report of the Receipts of the Project as per RERA",
-  "Constituting the valuation of the unsold inventory",
-  "Preparation and Certification of Form 3 (CA Certificate)",
-  "Recommendations with respect to modification or amendments to Form 3 (CA Certificate)",
-  "Consultation in Compilation of Form 3 (CA Certificate)",
-  "Advise on adhering to financial reporting and management practices mandated by RERA for the project",
+const PKG_PROFILE_MOD =
+  "Modification and Amendment of Project Details, wherever permissible without a separate application";
+const PKG_PROFILE_A = [
+  ...PKG_PROFILE_BASE,
+  "Uploading and Updation of Form 5 (Annual Audit Report) and Form 2A (Quality Assurance Certificate)",
+  PKG_PROFILE_MOD,
 ];
+const PKG_PROFILE_B = [
+  ...PKG_PROFILE_BASE,
+  "Uploading of Form 5 (Annual Audit Report) and Form 2A (Quality Assurance Certificate)",
+  PKG_PROFILE_MOD,
+];
+const PKG_PROFILE_CD = [
+  ...PKG_PROFILE_BASE,
+  "Drafting Assistance for Form 2A (Quality Assurance Certificate)",
+  "Uploading of Form 5 (Annual Audit) and Form 2A (Quality Assurance Certificate)",
+  PKG_PROFILE_MOD,
+];
+
+/* RERA Annual Audit Consultation — C & D only */
 const PKG_AUDIT = [
-  "Consultation regarding Examination of the Prescribed Registers, Books & Documents, and Relevant Records",
-  "Drafting assistance of Form 5 (Annual Report on Statement of Account) as per the Registers, Books & Documents",
-  "Certification & Submission of Form 5",
+  "Consultation and Assistance in Examination of Prescribed Registers, Books, Documents and Relevant Project Records",
+  "Drafting Assistance for Form 5 (Annual Report on Statement of Account), based on the Prescribed Registers, Books and Documents",
+  "Certification and Submission of Form 5 (Annual Report on Statement of Account)",
 ];
 
 /* ---------- the service catalogue ---------- */
@@ -514,7 +555,7 @@ const CATALOGUE = {
     label: "Project Registration",
     sections: [
       { title: "Project Registration Services", price: 75000, items: REG_SERVICE_ITEMS },
-      { title: "Legal Documentation - Drafting & Review", price: null, items: REG_DRAFTING_ITEMS },
+      { title: "Legal Documentation - Drafting", price: null, items: REG_DRAFTING_ITEMS },
       { title: "Legal Documentation - Vetting", price: 25000, items: REG_VETTING_ITEMS },
       { title: "Certifications", price: 30000, items: REG_CERT_ITEMS },
     ],
@@ -533,7 +574,7 @@ const CATALOGUE = {
     label: "Project Registration - Lumpsum",
     sections: [
       { title: "Project Registration Services", price: 650000, items: REG_SERVICE_ITEMS },
-      { title: "Legal Documentation - Drafting & Review", price: null, items: REG_DRAFTING_ITEMS },
+      { title: "Legal Documentation - Drafting", price: null, items: REG_DRAFTING_ITEMS },
       { title: "Legal Documentation - Vetting", price: null, items: REG_VETTING_ITEMS_LUMPSUM },
       { title: "Certifications", price: null, items: REG_CERT_ITEMS },
     ],
@@ -732,17 +773,13 @@ const CATALOGUE = {
         title: "Consultation & Advisory Services",
         hidePrice: true,
         price: 75000,
-        items: [...PKG_ADVISORY_6, "Implementation of Consents from Allottees"],
+        items: PKG_ADVISORY_A,
       },
-      { title: "Quarterly Progress Reports", price: null, items: [...PKG_QPR, PKG_QPR_DRAFTS] },
-      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
+      { title: "Quarterly Progress Reports", price: null, items: PKG_QPR_A },
+      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE_A },
     ],
     exclusions: PKG_EXCL_A,
-    docs: [
-      "Quarterly sales & bank statements.",
-      "Form 3 CA certificates.",
-      "Form 5 audit report.",
-    ],
+    docs: [],
     amount: 75000,
   },
   package_b: {
@@ -752,25 +789,14 @@ const CATALOGUE = {
         title: "Consultation & Advisory Services",
         hidePrice: true,
         price: 120000,
-        items: [
-          ...PKG_ADVISORY_6,
-          "Advisory Services on agreements & contracts with the buyer",
-          "Implementation of Consents from Allottees",
-          "Advisory Services on future withdrawals and further functioning of accounts",
-        ],
+        items: PKG_ADVISORY_BCD,
       },
-      { title: "Quarterly Progress Reports", price: null, items: PKG_QPR },
-      // Package B skips the construction-cost estimates line; C & D
-      // carry the full certifications list
-      { title: "Professional Certifications", price: null, items: PKG_CERTS.slice(1) },
-      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
+      { title: "Quarterly Progress Reports", price: null, items: PKG_QPR_B },
+      { title: "Professional Certifications", price: null, items: PKG_CERTS_B },
+      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE_B },
     ],
     exclusions: PKG_EXCL_B,
-    docs: [
-      "Quarterly sales & bank statements.",
-      "Form 3 CA certificates.",
-      "Form 5 audit report.",
-    ],
+    docs: [],
     amount: 120000,
   },
   package_c: {
@@ -780,23 +806,15 @@ const CATALOGUE = {
         title: "Consultation & Advisory Services",
         hidePrice: true,
         price: 125000,
-        items: [
-          ...PKG_ADVISORY_6,
-          "Implementation of Consents from Allottees",
-          "Advisory Services on future withdrawals and further functioning of accounts",
-        ],
+        items: PKG_ADVISORY_BCD,
       },
-      { title: "Quarterly Progress Reports", price: null, items: PKG_QPR },
-      { title: "Professional Certifications", price: null, items: ["Preparation and Certification of Form 1 (Architects Certificate)", ...PKG_CERTS] },
-      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
+      { title: "Quarterly Progress Reports", price: null, items: PKG_QPR_CD },
+      { title: "Professional Certifications", price: null, items: PKG_CERTS_C },
+      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE_CD },
       { title: "RERA Annual Audit Consultation", price: null, items: PKG_AUDIT },
     ],
     exclusions: PKG_EXCL_CD,
-    docs: [
-      "Quarterly sales & bank statements.",
-      "Form 3 CA certificates.",
-      "Form 5 audit report.",
-    ],
+    docs: [],
     amount: 125000,
   },
   package_d: {
@@ -806,27 +824,15 @@ const CATALOGUE = {
         title: "Consultation & Advisory Services",
         hidePrice: true,
         price: 125000,
-        items: [
-          ...PKG_ADVISORY_6,
-          "Implementation of Consents from Allottees",
-          "Advisory Services on future withdrawals and further functioning of accounts",
-        ],
+        items: PKG_ADVISORY_BCD,
       },
-      { title: "Quarterly Progress Reports", price: null, items: PKG_QPR },
-      {
-        title: "Professional Certifications",
-        price: null,
-        items: ["Preparation and Certification of Form 1 (Architects Certificate)", ...PKG_CERTS],
-      },
-      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE },
+      { title: "Quarterly Progress Reports", price: null, items: PKG_QPR_CD },
+      { title: "Professional Certifications", price: null, items: PKG_CERTS_D },
+      { title: "RERA Profile Updation & Compliance", price: null, items: PKG_PROFILE_CD },
       { title: "RERA Annual Audit Consultation", price: null, items: PKG_AUDIT },
     ],
     exclusions: PKG_EXCL_CD,
-    docs: [
-      "Quarterly sales & bank statements.",
-      "Form 3 CA certificates.",
-      "Form 5 audit report.",
-    ],
+    docs: [],
     amount: 125000,
   },
 };

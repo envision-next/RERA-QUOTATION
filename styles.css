@@ -2195,8 +2195,7 @@ body.modal-open { overflow: hidden; }
   margin: 0;
   padding-left: 0;
   list-style: none;
-  columns: 2;
-  column-gap: 34px;
+  columns: 1;   /* one document per line, single bullet column */
 }
 .proposal .docs-list li {
   position: relative;
